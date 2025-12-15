@@ -1,0 +1,157 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// Note: SQLite doesn't support enums, so we use String with default values
+
+model User {
+  id            String    @id @default(uuid())
+  name          String
+  email         String    @unique
+  password      String
+  role          String    @default("agent") // "admin" or "agent"
+  referralCode  String    @unique
+  uplineId      String?
+  level         Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  upline        User?     @relation("UplineDownline", fields: [uplineId], references: [id])
+  downlines     User[]    @relation("UplineDownline")
+  sales         Sale[]
+  commissions   Commission[]
+  wallet        Wallet?
+  withdrawals   Withdrawal[]
+  bankDetails   BankDetails?
+
+  @@index([uplineId])
+  @@index([referralCode])
+}
+
+model Property {
+  id                    String    @id @default(uuid())
+  name                  String
+  location              String
+  price                 Float
+  description           String    // SQLite doesn't support @db.Text
+  images                String    @default("[]") // Store as JSON string: "[\"url1\", \"url2\"]"
+  totalCommissionPercent Float     // Total commission percentage (e.g., 10%)
+  sellerPercent         Float     // Commission % for seller (Level 0)
+  level1Percent         Float     // Commission % for Level 1
+  level2Percent         Float     // Commission % for Level 2
+  status                String    @default("active") // active, inactive
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  sales                 Sale[]
+
+  @@index([status])
+}
+
+model Sale {
+  id              String      @id @default(uuid())
+  propertyId      String
+  sellerId        String
+  buyerName       String
+  buyerContact    String
+  saleAmount      Float
+  status          String      @default("pending") // "pending", "approved", "rejected"
+  isViewedByAdmin Boolean     @default(false)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  property        Property    @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  seller          User        @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  commissions     Commission[]
+
+  @@index([sellerId])
+  @@index([propertyId])
+  @@index([status])
+  @@index([isViewedByAdmin])
+}
+
+model Commission {
+  id              String            @id @default(uuid())
+  saleId          String
+  userId          String
+  level           Int               // 0 = seller, 1 = upline, 2 = upline's upline
+  percentage      Float
+  amount          Float
+  status          String            @default("pending") // "pending", "approved", "rejected"
+  isViewedByAdmin Boolean           @default(false)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  // Relations
+  sale            Sale              @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([saleId])
+  @@index([userId])
+  @@index([status])
+  @@index([isViewedByAdmin])
+}
+
+model Wallet {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  balance         Float    @default(0)
+  pendingBalance  Float    @default(0)
+  approvedBalance Float    @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model BankDetails {
+  id                String      @id @default(uuid())
+  userId            String      @unique
+  bankName          String
+  accountHolderName String
+  accountNumber     String
+  ifscCode          String
+  email             String
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  // Relations
+  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  withdrawals       Withdrawal[]
+
+  @@index([userId])
+}
+
+model Withdrawal {
+  id              String            @id @default(uuid())
+  userId          String
+  bankDetailsId   String?
+  amount          Float
+  status          String            @default("pending") // "pending", "approved", "rejected"
+  isViewedByAdmin Boolean           @default(false)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  // Relations
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bankDetails     BankDetails?      @relation(fields: [bankDetailsId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([status])
+  @@index([bankDetailsId])
+  @@index([isViewedByAdmin])
+}
