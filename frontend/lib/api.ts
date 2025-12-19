@@ -95,6 +95,8 @@ export const adminAPI = {
   deleteUser: (id: string) => api.delete(`/admin/users/${id}`),
   resetUserPassword: (id: string, data: { password: string }) =>
     api.post(`/admin/users/${id}/reset-password`, data),
+  makeAdmin: (id: string) => api.post(`/admin/users/${id}/make-admin`),
+  removeAdmin: (id: string) => api.post(`/admin/users/${id}/remove-admin`),
   getMLMTree: () => api.get('/admin/mlm-tree'),
   // Sales
   getSales: (params?: { status?: string; page?: number; limit?: number; propertyId?: string; buyer?: string }) =>

@@ -417,7 +417,8 @@ router.get('/users', async (req, res) => {
     const { page = 1, limit = 100, search } = req.query; // Increased limit for search to work properly
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const where = { role: 'agent' };
+    // Return all users (both agents and admins) so admin can manage roles
+    const where = {};
     
     // Search by name, email, or referral code
     // SQLite's contains is case-insensitive for ASCII characters by default
@@ -441,6 +442,7 @@ router.get('/users', async (req, res) => {
           email: true,
           referralCode: true,
           level: true,
+          role: true,
           uplineId: true,
           createdAt: true,
           upline: {
@@ -735,6 +737,184 @@ router.post('/users/:id/reset-password', [
     res.status(500).json({
       success: false,
       message: 'Failed to update agent password',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   POST /api/admin/users/:id/make-admin
+ * @desc    Promote an agent to admin role
+ * @access  Private (Admin only)
+ */
+router.post('/users/:id/make-admin', async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    // Prevent admin from making themselves admin (redundant check)
+    if (req.user.id === id) {
+      return res.status(400).json({
+        success: false,
+        message: 'You cannot change your own role'
+      });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id }
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Check if user is already an admin
+    if (user.role === 'admin') {
+      return res.status(400).json({
+        success: false,
+        message: 'User is already an admin'
+      });
+    }
+
+    // Ensure user is an agent before promoting
+    if (user.role !== 'agent') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only agents can be promoted to admin'
+      });
+    }
+
+    // Update role to admin
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: {
+        role: 'admin'
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        referralCode: true,
+        level: true,
+        createdAt: true,
+        upline: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      }
+    });
+
+    console.log('Admin promoted agent to admin', {
+      adminId: req.user.id,
+      promotedUserId: id,
+      timestamp: new Date().toISOString()
+    });
+
+    res.json({
+      success: true,
+      message: 'Agent promoted to admin successfully',
+      data: { user: updatedUser }
+    });
+  } catch (error) {
+    console.error('Make admin error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to promote agent to admin',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   POST /api/admin/users/:id/remove-admin
+ * @desc    Revoke admin access from a user (change role from admin to agent)
+ * @access  Private (Admin only)
+ */
+router.post('/users/:id/remove-admin', async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    // Prevent admin from removing their own admin access
+    if (req.user.id === id) {
+      return res.status(400).json({
+        success: false,
+        message: 'You cannot remove your own admin access'
+      });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id }
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Check if user is already an agent
+    if (user.role === 'agent') {
+      return res.status(400).json({
+        success: false,
+        message: 'User is already an agent'
+      });
+    }
+
+    // Ensure user is an admin before revoking
+    if (user.role !== 'admin') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only admins can have their access revoked'
+      });
+    }
+
+    // Update role to agent
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: {
+        role: 'agent'
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        referralCode: true,
+        level: true,
+        createdAt: true,
+        upline: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      }
+    });
+
+    console.log('Admin revoked admin access', {
+      adminId: req.user.id,
+      revokedUserId: id,
+      timestamp: new Date().toISOString()
+    });
+
+    res.json({
+      success: true,
+      message: 'Admin access revoked successfully',
+      data: { user: updatedUser }
+    });
+  } catch (error) {
+    console.error('Remove admin error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to revoke admin access',
       error: error.message
     });
   }

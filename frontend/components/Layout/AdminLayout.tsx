@@ -220,8 +220,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <div className="p-4 border-t border-gray-100">
           {user && sidebarOpen && (
             <div className="mb-4 px-4 py-3 rounded-2xl bg-gray-50">
-              <p className="text-sm font-medium text-gray-900">{user.name}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{user.email}</p>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-sm font-medium text-gray-900">{user.name}</p>
+                {user.role === 'admin' && (
+                  <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-semibold rounded-full bg-purple-100 text-purple-700">
+                    Admin
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-gray-500">{user.email}</p>
             </div>
           )}
           <button

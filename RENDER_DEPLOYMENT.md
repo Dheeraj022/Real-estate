@@ -57,3 +57,5 @@ Make sure to set these in Render dashboard:
    - Check that `NEXT_PUBLIC_API_URL` is set correctly
    - Verify the start command is `cd frontend && npm start`
 
+
+

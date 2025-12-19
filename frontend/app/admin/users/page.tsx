@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, FormEvent } from 'react'
 import AdminLayout from '@/components/Layout/AdminLayout'
-import { adminAPI } from '@/lib/api'
+import { adminAPI, authAPI } from '@/lib/api'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 
@@ -12,6 +12,7 @@ interface User {
   email: string
   referralCode: string
   level: number
+  role: string
   createdAt: string
   upline: {
     id: string
@@ -30,6 +31,11 @@ export default function AdminUsersPage() {
   const [editEmail, setEditEmail] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [makingAdmin, setMakingAdmin] = useState<string | null>(null)
+  const [confirmMakeAdmin, setConfirmMakeAdmin] = useState<User | null>(null)
+  const [removingAdmin, setRemovingAdmin] = useState<string | null>(null)
+  const [confirmRemoveAdmin, setConfirmRemoveAdmin] = useState<User | null>(null)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
   // Debounce search input to prevent excessive API calls
   useEffect(() => {
@@ -43,6 +49,19 @@ export default function AdminUsersPage() {
   useEffect(() => {
     fetchUsers()
   }, [searchDebounce])
+
+  // Fetch current logged-in user to prevent self-removal
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await authAPI.getMe()
+        setCurrentUserId(response.data.data.user.id)
+      } catch (error) {
+        console.error('Failed to fetch current user:', error)
+      }
+    }
+    fetchCurrentUser()
+  }, [])
 
   const fetchUsers = useCallback(async () => {
     setLoading(true)
@@ -176,6 +195,54 @@ export default function AdminUsersPage() {
     }
   }
 
+  const handleMakeAdmin = async (user: User) => {
+    if (!confirmMakeAdmin) return
+
+    setMakingAdmin(user.id)
+    try {
+      await adminAPI.makeAdmin(user.id)
+
+      toast.success(`${user.name} has been promoted to admin`)
+      setConfirmMakeAdmin(null)
+      
+      // Refresh the list
+      await fetchUsers()
+    } catch (error: any) {
+      console.error('Failed to make admin:', error)
+      if (error.response?.data?.message) {
+        toast.error(error.response.data.message)
+      } else {
+        toast.error('Failed to promote agent to admin')
+      }
+    } finally {
+      setMakingAdmin(null)
+    }
+  }
+
+  const handleRemoveAdmin = async (user: User) => {
+    if (!confirmRemoveAdmin) return
+
+    setRemovingAdmin(user.id)
+    try {
+      await adminAPI.removeAdmin(user.id)
+
+      toast.success(`${user.name}'s admin access has been revoked`)
+      setConfirmRemoveAdmin(null)
+      
+      // Refresh the list
+      await fetchUsers()
+    } catch (error: any) {
+      console.error('Failed to remove admin:', error)
+      if (error.response?.data?.message) {
+        toast.error(error.response.data.message)
+      } else {
+        toast.error('Failed to revoke admin access')
+      }
+    } finally {
+      setRemovingAdmin(null)
+    }
+  }
+
   if (loading) {
     return (
       <AdminLayout>
@@ -190,7 +257,7 @@ export default function AdminUsersPage() {
     <AdminLayout>
       <div>
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Agents</h1>
+          <h1 className="text-3xl font-bold text-gray-800">Users & Agents</h1>
           <input
             type="text"
             placeholder="Search by name or referral code..."
@@ -243,20 +310,48 @@ export default function AdminUsersPage() {
                     {format(new Date(user.createdAt), 'MMM dd, yyyy')}
                   </td>
                   <td className="px-6 py-4 text-right text-sm space-x-2">
-                    <button
-                      type="button"
-                      onClick={() => openEditModal(user)}
-                      className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(user)}
-                      className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg border border-red-200 text-red-600 hover:bg-red-50"
-                    >
-                      Delete
-                    </button>
+                    {user.role === 'admin' ? (
+                      <>
+                        <span className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg bg-purple-100 text-purple-700 mr-2">
+                          Admin
+                        </span>
+                        {currentUserId && user.id !== currentUserId && (
+                          <button
+                            type="button"
+                            onClick={() => setConfirmRemoveAdmin(user)}
+                            disabled={removingAdmin === user.id}
+                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg border border-orange-200 text-orange-600 hover:bg-orange-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {removingAdmin === user.id ? 'Removing...' : 'Remove Admin'}
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => openEditModal(user)}
+                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmMakeAdmin(user)}
+                          disabled={makingAdmin === user.id}
+                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {makingAdmin === user.id ? 'Promoting...' : 'Make Admin'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(user)}
+                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-lg border border-red-200 text-red-600 hover:bg-red-50"
+                        >
+                          Delete
+                        </button>
+                      </>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -267,6 +362,118 @@ export default function AdminUsersPage() {
             <div className="text-center py-12 text-gray-500">No agents found</div>
           )}
         </div>
+
+        {/* Remove Admin Confirmation Modal */}
+        {confirmRemoveAdmin && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
+            onClick={() => setConfirmRemoveAdmin(null)}
+          >
+            <div
+              className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Remove Admin Access</h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Are you sure you want to remove admin access from this user?
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setConfirmRemoveAdmin(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                  aria-label="Close"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4">
+                <p className="text-sm text-orange-800">
+                  <strong>User:</strong> {confirmRemoveAdmin.name} ({confirmRemoveAdmin.email})
+                </p>
+                <p className="text-xs text-orange-700 mt-1">
+                  This action will revoke admin privileges. The user will become an agent and lose access to the admin panel.
+                </p>
+              </div>
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setConfirmRemoveAdmin(null)}
+                  disabled={removingAdmin === confirmRemoveAdmin.id}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveAdmin(confirmRemoveAdmin)}
+                  disabled={removingAdmin === confirmRemoveAdmin.id}
+                  className="px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {removingAdmin === confirmRemoveAdmin.id ? 'Removing...' : 'Yes, Remove Admin'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Make Admin Confirmation Modal */}
+        {confirmMakeAdmin && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
+            onClick={() => setConfirmMakeAdmin(null)}
+          >
+            <div
+              className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Make Admin</h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Are you sure you want to make this agent an admin?
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setConfirmMakeAdmin(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                  aria-label="Close"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                <p className="text-sm text-yellow-800">
+                  <strong>Agent:</strong> {confirmMakeAdmin.name} ({confirmMakeAdmin.email})
+                </p>
+                <p className="text-xs text-yellow-700 mt-1">
+                  This action will grant full admin privileges. The agent will immediately be able to access the admin panel.
+                </p>
+              </div>
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setConfirmMakeAdmin(null)}
+                  disabled={makingAdmin === confirmMakeAdmin.id}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleMakeAdmin(confirmMakeAdmin)}
+                  disabled={makingAdmin === confirmMakeAdmin.id}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {makingAdmin === confirmMakeAdmin.id ? 'Promoting...' : 'Yes, Make Admin'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Edit Agent Modal */}
         {editingUser && (
