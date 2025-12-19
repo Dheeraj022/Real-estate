@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: mlm-property-frontend
+    env: node
+    buildCommand: cd frontend && npm install && npm run build
+    startCommand: cd frontend && npm start
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
+    # Publish directory should be .next, not build
+    # If Render dashboard is set to 'build', change it to '.next' in Render dashboard settings
+
