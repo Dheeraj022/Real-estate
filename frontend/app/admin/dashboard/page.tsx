@@ -59,7 +59,12 @@ export default function AdminDashboard() {
     { label: 'Total Properties', value: stats?.totalProperties || 0, color: 'green', icon: '🏠' },
     { label: 'Total Sales', value: stats?.totalSales || 0, color: 'purple', icon: '💰' },
     { label: 'Pending Sales', value: stats?.pendingSales || 0, color: 'yellow', icon: '⏳' },
-    { label: 'Total Commissions', value: formatCurrency(stats?.totalCommissions), color: 'indigo', icon: '💵' },
+    { 
+  label: 'Total Commissions', 
+  value: formatCurrency(stats?.totalCommissions ?? 0), 
+  color: 'indigo', 
+  icon: '💵' 
+},
     { label: 'Pending Commissions', value: stats?.pendingCommissions || 0, color: 'orange', icon: '⏳' },
     { label: 'Total Withdrawals', value: stats?.totalWithdrawals || 0, color: 'pink', icon: '💸' },
     { label: 'Pending Withdrawals', value: stats?.pendingWithdrawals || 0, color: 'red', icon: '⏳' },
