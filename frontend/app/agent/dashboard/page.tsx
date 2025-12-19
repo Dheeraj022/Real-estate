@@ -71,11 +71,11 @@ export default function AgentDashboard() {
             </div>
             <div>
               <p className="text-sm opacity-90">Pending</p>
-              <p className="text-3xl font-bold">{formatCurrency(data?.wallet.pendingBalance)}</p>
+              <p className="text-3xl font-bold">{formatCurrency(data?.wallet?.pendingBalance ?? 0)}</p>
             </div>
             <div>
               <p className="text-sm opacity-90">Approved</p>
-              <p className="text-3xl font-bold">{formatCurrency(data?.wallet.approvedBalance)}</p>
+              <p className="text-3xl font-bold">{formatCurrency(data?.wallet?.approvedBalance ?? 0)}</p>
             </div>
           </div>
         </div>
@@ -106,7 +106,7 @@ export default function AgentDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total Commissions</p>
-                <p className="text-2xl font-bold text-gray-800">{formatCurrency(data?.commissions.total)}</p>
+                <p className="text-2xl font-bold text-gray-800">{formatCurrency(data?.commissions?.total ?? 0)}</p>
               </div>
               <span className="text-3xl">💵</span>
             </div>

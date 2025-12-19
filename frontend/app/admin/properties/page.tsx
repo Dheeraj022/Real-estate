@@ -217,7 +217,7 @@ export default function AdminPropertiesPage() {
             <div key={property.id} className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
               <h3 className="text-xl font-semibold mb-2 text-gray-800">{property.name}</h3>
               <p className="text-gray-600 mb-2">📍 {property.location}</p>
-              <p className="text-2xl font-bold text-primary-600 mb-2">{formatCurrency(property.price)}</p>
+              <p className="text-2xl font-bold text-primary-600 mb-2">{formatCurrency(property.price ?? 0)}</p>
               <p className="text-sm text-gray-600 mb-4 line-clamp-2">{property.description}</p>
               
               <div className="mb-4 p-3 bg-gray-50 rounded">

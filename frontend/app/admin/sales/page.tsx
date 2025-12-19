@@ -249,7 +249,7 @@ export default function AdminSalesPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm font-semibold text-gray-900">
-                      {formatCurrency(sale.saleAmount)}
+                      {formatCurrency(sale.saleAmount ?? 0)}
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(sale.status)}`}>
@@ -306,7 +306,7 @@ export default function AdminSalesPage() {
                   <div className="flex items-center justify-between pt-2 border-t border-gray-100">
                     <div>
                       <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Amount</p>
-                      <p className="text-sm font-semibold text-gray-900">{formatCurrency(sale.saleAmount)}</p>
+                      <p className="text-sm font-semibold text-gray-900">{formatCurrency(sale.saleAmount ?? 0)}</p>
                     </div>
                     <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(sale.status)}`}>
                       {sale.status}

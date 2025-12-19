@@ -82,9 +82,9 @@ export default function AgentCommissionsPage() {
     }
   }
 
-  const totalCommissions = commissions.reduce((sum, c) => sum + c.amount, 0)
-  const approvedCommissions = commissions.filter(c => c.status === 'approved').reduce((sum, c) => sum + c.amount, 0)
-  const pendingCommissions = commissions.filter(c => c.status === 'pending').reduce((sum, c) => sum + c.amount, 0)
+  const totalCommissions = commissions.reduce((sum, c) => sum + (c.amount ?? 0), 0)
+  const approvedCommissions = commissions.filter(c => c.status === 'approved').reduce((sum, c) => sum + (c.amount ?? 0), 0)
+  const pendingCommissions = commissions.filter(c => c.status === 'pending').reduce((sum, c) => sum + (c.amount ?? 0), 0)
 
   return (
     <AgentLayout>
@@ -150,7 +150,7 @@ export default function AgentCommissionsPage() {
                     {commission.percentage}%
                   </td>
                   <td className="px-6 py-4 text-sm font-semibold text-gray-900">
-                    {formatCurrency(commission.amount)}
+                    {formatCurrency(commission.amount ?? 0)}
                   </td>
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(commission.status)}`}>

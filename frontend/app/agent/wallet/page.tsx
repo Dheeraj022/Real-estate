@@ -187,15 +187,15 @@ export default function AgentWalletPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-gradient-to-r from-primary-500 to-primary-600 text-white p-6 rounded-lg shadow-lg">
             <p className="text-sm opacity-90 mb-2">Total Balance</p>
-              <p className="text-3xl font-bold">{formatCurrency(wallet?.balance)}</p>
+              <p className="text-3xl font-bold">{formatCurrency(wallet?.balance ?? 0)}</p>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
               <p className="text-sm text-gray-600 mb-2">Pending</p>
-              <p className="text-3xl font-bold text-yellow-600">{formatCurrency(wallet?.pendingBalance)}</p>
+              <p className="text-3xl font-bold text-yellow-600">{formatCurrency(wallet?.pendingBalance ?? 0)}</p>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
               <p className="text-sm text-gray-600 mb-2">Approved</p>
-              <p className="text-3xl font-bold text-green-600">{formatCurrency(wallet?.approvedBalance)}</p>
+              <p className="text-3xl font-bold text-green-600">{formatCurrency(wallet?.approvedBalance ?? 0)}</p>
           </div>
         </div>
 
@@ -257,7 +257,7 @@ export default function AgentWalletPage() {
             </button>
           </div>
           <p className="text-sm text-gray-600">
-            Available balance: <span className="font-semibold">{formatCurrency(wallet?.balance)}</span>
+            Available balance: <span className="font-semibold">{formatCurrency(wallet?.balance ?? 0)}</span>
           </p>
           {!bankDetails && (
             <p className="text-xs text-yellow-600 mt-2">
@@ -283,7 +283,7 @@ export default function AgentWalletPage() {
               {withdrawals.map((withdrawal) => (
                 <tr key={withdrawal.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 text-sm font-semibold text-gray-900">
-                    {formatCurrency(withdrawal.amount)}
+                    {formatCurrency(withdrawal.amount ?? 0)}
                   </td>
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(withdrawal.status)}`}>
@@ -475,10 +475,10 @@ export default function AgentWalletPage() {
                     required
                     disabled={!bankDetails}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                    placeholder={`Max: ${formatCurrency(wallet?.balance)}`}
+                    placeholder={`Max: ${formatCurrency(wallet?.balance ?? 0)}`}
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Available: {formatCurrency(wallet?.balance)}
+                    Available: {formatCurrency(wallet?.balance ?? 0)}
                   </p>
                 </div>
                 <div className="flex gap-4">

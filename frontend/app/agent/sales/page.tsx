@@ -102,7 +102,7 @@ export default function AgentSalesPage() {
       group.sales.push(sale)
     }
 
-    for (const group of groups.values()) {
+    Array.from(groups.values()).forEach((group) => {
       // Sum only non-rejected sales for payment calculation
       const totalPaid = group.sales
         .filter((s) => s.status !== 'rejected')
@@ -117,7 +117,7 @@ export default function AgentSalesPage() {
       } else {
         group.paymentStatus = 'Pending'
       }
-    }
+    })
 
     // Sort groups by latest sale date desc
     return Array.from(groups.values()).sort((a, b) => {
@@ -261,19 +261,19 @@ export default function AgentSalesPage() {
                   <div className="bg-gray-50 rounded-md p-2">
                     <p className="text-gray-500">Property Price</p>
                     <p className="font-semibold text-gray-900">
-                      {formatCurrency(group.propertyPrice)}
+                      {formatCurrency(group.propertyPrice ?? 0)}
                     </p>
                   </div>
                   <div className="bg-gray-50 rounded-md p-2">
                     <p className="text-gray-500">Total Paid</p>
                     <p className="font-semibold text-gray-900">
-                      {formatCurrency(group.totalPaid)}
+                      {formatCurrency(group.totalPaid ?? 0)}
                     </p>
                   </div>
                   <div className="bg-gray-50 rounded-md p-2">
                     <p className="text-gray-500">Remaining Amount</p>
                     <p className="font-semibold text-gray-900">
-                      {formatCurrency(group.remaining)}
+                      {formatCurrency(group.remaining ?? 0)}
                     </p>
                   </div>
                 </div>
@@ -342,12 +342,12 @@ export default function AgentSalesPage() {
                             </div>
                             <div className="text-right">
                               <p className="font-semibold text-gray-900">
-                                {formatCurrency(sale.saleAmount)}
+                                {formatCurrency(sale.saleAmount ?? 0)}
                               </p>
                               <p className="text-[11px] text-gray-500">
                                 Running total:{' '}
                                 <span className="font-semibold">
-                                  {formatCurrency(runningTotal)}
+                                  {formatCurrency(runningTotal ?? 0)}
                                 </span>
                               </p>
                             </div>

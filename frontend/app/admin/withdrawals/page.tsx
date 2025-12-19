@@ -144,7 +144,7 @@ export default function AdminWithdrawalsPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm font-semibold text-gray-900">
-                      {formatCurrency(withdrawal.amount)}
+                      {formatCurrency(withdrawal.amount ?? 0)}
                     </td>
                     <td className="px-6 py-4">
                       {withdrawal.bankDetails ? (
