@@ -30,10 +30,13 @@ interface HierarchyLevel {
 }
 
 const LEVEL_CONFIG: Record<number, HierarchyLevel> = {
-  0: { level: 0, label: 'Seller', color: 'text-blue-700', bgColor: 'bg-blue-50', borderColor: 'border-blue-500' },
+  0: { level: 0, label: 'Seller (Level 0)', color: 'text-blue-700', bgColor: 'bg-blue-50', borderColor: 'border-blue-500' },
   1: { level: 1, label: 'Level 1', color: 'text-green-700', bgColor: 'bg-green-50', borderColor: 'border-green-500' },
   2: { level: 2, label: 'Level 2', color: 'text-orange-700', bgColor: 'bg-orange-50', borderColor: 'border-orange-500' },
-  3: { level: 3, label: 'Level 3+', color: 'text-gray-700', bgColor: 'bg-gray-50', borderColor: 'border-gray-400' },
+  3: { level: 3, label: 'Level 3', color: 'text-purple-700', bgColor: 'bg-purple-50', borderColor: 'border-purple-500' },
+  4: { level: 4, label: 'Level 4', color: 'text-indigo-700', bgColor: 'bg-indigo-50', borderColor: 'border-indigo-500' },
+  5: { level: 5, label: 'Level 5', color: 'text-pink-700', bgColor: 'bg-pink-50', borderColor: 'border-pink-500' },
+  6: { level: 6, label: 'Level 6', color: 'text-gray-700', bgColor: 'bg-gray-50', borderColor: 'border-gray-400' },
 }
 
 export default function AdminMLMTreePage() {
@@ -82,8 +85,8 @@ export default function AdminMLMTreePage() {
     }
   }
 
-  // Build hierarchy for selected root (up to 3 levels)
-  const buildHierarchy = (rootUser: MLMUser | null, maxLevel: number = 3): MLMUser | null => {
+  // Build hierarchy for selected root (up to 6 downline levels: Seller (0) + Levels 1–6)
+  const buildHierarchy = (rootUser: MLMUser | null, maxLevel: number = 7): MLMUser | null => {
     if (!rootUser) return null
 
     const buildDownlines = (user: MLMUser, currentLevel: number): MLMUser => {
@@ -107,7 +110,7 @@ export default function AdminMLMTreePage() {
 
   const hierarchy = useMemo(() => {
     if (!selectedRoot) return null
-    return buildHierarchy(selectedRoot, 3)
+    return buildHierarchy(selectedRoot, 7)
   }, [selectedRoot, allUsers])
 
   // Search functionality
@@ -154,7 +157,7 @@ export default function AdminMLMTreePage() {
   const renderLevel = (users: MLMUser[], level: number) => {
     if (!users || users.length === 0) return null
 
-    const levelConfig = LEVEL_CONFIG[level] || LEVEL_CONFIG[3]
+    const levelConfig = LEVEL_CONFIG[level] || LEVEL_CONFIG[6]
     const displayUsers = levelFilter ? (level === parseInt(levelFilter) ? users : []) : users
 
     if (displayUsers.length === 0 && levelFilter) return null
@@ -233,6 +236,10 @@ export default function AdminMLMTreePage() {
   const level0Users = displayHierarchy ? [displayHierarchy] : []
   const level1Users = displayHierarchy?.downlines || []
   const level2Users = level1Users.flatMap(l1 => l1.downlines || [])
+  const level3Users = level2Users.flatMap(l2 => l2.downlines || [])
+  const level4Users = level3Users.flatMap(l3 => l3.downlines || [])
+  const level5Users = level4Users.flatMap(l4 => l4.downlines || [])
+  const level6Users = level5Users.flatMap(l5 => l5.downlines || [])
 
   return (
     <AdminLayout>
@@ -294,6 +301,10 @@ export default function AdminMLMTreePage() {
               <option value="0">Seller (Level 0)</option>
               <option value="1">Level 1</option>
               <option value="2">Level 2</option>
+              <option value="3">Level 3</option>
+              <option value="4">Level 4</option>
+              <option value="5">Level 5</option>
+              <option value="6">Level 6</option>
             </select>
             {levelFilter && (
               <button
@@ -331,6 +342,46 @@ export default function AdminMLMTreePage() {
 
             {/* Level 2 */}
             {renderLevel(level2Users, 2)}
+
+            {/* Connector */}
+            {level3Users.length > 0 && (
+              <div className="flex justify-center">
+                <div className="w-0.5 h-8 bg-gradient-to-b from-orange-200 to-purple-200 rounded-full"></div>
+              </div>
+            )}
+
+            {/* Level 3 */}
+            {renderLevel(level3Users, 3)}
+
+            {/* Connector */}
+            {level4Users.length > 0 && (
+              <div className="flex justify-center">
+                <div className="w-0.5 h-8 bg-gradient-to-b from-purple-200 to-indigo-200 rounded-full"></div>
+              </div>
+            )}
+
+            {/* Level 4 */}
+            {renderLevel(level4Users, 4)}
+
+            {/* Connector */}
+            {level5Users.length > 0 && (
+              <div className="flex justify-center">
+                <div className="w-0.5 h-8 bg-gradient-to-b from-indigo-200 to-pink-200 rounded-full"></div>
+              </div>
+            )}
+
+            {/* Level 5 */}
+            {renderLevel(level5Users, 5)}
+
+            {/* Connector */}
+            {level6Users.length > 0 && (
+              <div className="flex justify-center">
+                <div className="w-0.5 h-8 bg-gradient-to-b from-pink-200 to-gray-200 rounded-full"></div>
+              </div>
+            )}
+
+            {/* Level 6 */}
+            {renderLevel(level6Users, 6)}
           </div>
         ) : (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
@@ -350,7 +401,9 @@ export default function AdminMLMTreePage() {
             <div className="flex-1">
               <p className="text-sm font-medium text-blue-900 mb-1">How it works</p>
               <p className="text-xs text-blue-800 leading-relaxed">
-                Click on any agent card to view their hierarchy. The view shows up to 3 levels: <span className="font-semibold">Seller (Blue)</span>, <span className="font-semibold">Level 1 (Green)</span>, and <span className="font-semibold">Level 2 (Orange)</span>. Commission is calculated only for these 3 levels, even though the referral tree can extend deeper.
+                Click on any agent card to view their hierarchy. The view shows up to 7 levels:{' '}
+                <span className="font-semibold">Seller (Level 0)</span> and{' '}
+                <span className="font-semibold">Levels 1 through 6</span>. The referral tree itself can extend to unlimited depth in the database, but the admin view (and MLM tree UI) is capped at Level 6 for clarity.
               </p>
             </div>
           </div>

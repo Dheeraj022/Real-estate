@@ -6,6 +6,19 @@ import { useRouter, usePathname } from 'next/navigation'
 import { authAPI, adminAPI } from '@/lib/api'
 import { removeToken, isAdmin, type User } from '@/lib/auth'
 import toast from 'react-hot-toast'
+import type { LucideIcon } from 'lucide-react'
+import {
+  LayoutDashboard,
+  Home,
+  Users,
+  GitBranch,
+  TrendingUp,
+  Percent,
+  CreditCard,
+  Wallet as WalletIcon,
+  MapPin,
+  LogOut
+} from 'lucide-react'
 
 interface AdminLayoutProps {
   children: React.ReactNode
@@ -15,6 +28,7 @@ interface NotificationCounts {
   sales: number
   commissions: number
   withdrawals: number
+  visits: number
 }
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
@@ -24,7 +38,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const [notificationCounts, setNotificationCounts] = useState<NotificationCounts>({
     sales: 0,
     commissions: 0,
-    withdrawals: 0
+    withdrawals: 0,
+    visits: 0
   })
   const router = useRouter()
   const pathname = usePathname()
@@ -37,13 +52,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         setUser(userData)
 
         if (!isAdmin(userData)) {
-          router.push('/dashboard')
+          // Non-admin users cannot access /admin routes
+          removeToken()
+          router.push('/admin/login')
         }
       } catch (error: any) {
         console.error('Failed to fetch user:', error)
         if (error.response?.status === 401) {
           removeToken()
-          router.push('/admin/admin-login')
+          router.push('/admin/login')
         }
       }
     }
@@ -89,14 +106,20 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     router.push('/login')
   }
 
-  const navItems = [
-    { href: '/admin/dashboard', label: 'Dashboard', icon: '📊', badgeKey: null as keyof NotificationCounts | null },
-    { href: '/admin/properties', label: 'Properties', icon: '🏠', badgeKey: null as keyof NotificationCounts | null },
-    { href: '/admin/users', label: 'Agents', icon: '👥', badgeKey: null as keyof NotificationCounts | null },
-    { href: '/admin/mlm-tree', label: 'MLM Tree', icon: '🌳', badgeKey: null as keyof NotificationCounts | null },
-    { href: '/admin/sales', label: 'Sales', icon: '💰', badgeKey: 'sales' as keyof NotificationCounts },
-    { href: '/admin/commissions', label: 'Commissions', icon: '💵', badgeKey: 'commissions' as keyof NotificationCounts },
-    { href: '/admin/withdrawals', label: 'Withdrawals', icon: '💸', badgeKey: 'withdrawals' as keyof NotificationCounts },
+  const navItems: {
+    href: string
+    label: string
+    icon: LucideIcon
+    badgeKey: keyof NotificationCounts | null
+  }[] = [
+    { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard, badgeKey: null },
+    { href: '/admin/properties', label: 'Properties', icon: Home, badgeKey: null },
+    { href: '/admin/users', label: 'Agents', icon: Users, badgeKey: null },
+    { href: '/admin/mlm-tree', label: 'MLM Tree', icon: GitBranch, badgeKey: null },
+    { href: '/admin/sales', label: 'Sales', icon: TrendingUp, badgeKey: 'sales' },
+    { href: '/admin/commissions', label: 'Commissions', icon: Percent, badgeKey: 'commissions' },
+    { href: '/admin/withdrawals', label: 'Withdrawals', icon: CreditCard, badgeKey: 'withdrawals' },
+    { href: '/admin/visits', label: 'Visits', icon: MapPin, badgeKey: 'visits' }
   ]
 
   // Close mobile menu when route changes
@@ -153,6 +176,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           {navItems.map((item) => {
             const badgeCount = item.badgeKey ? notificationCounts[item.badgeKey] : 0
             const isActive = pathname === item.href
+            const Icon = item.icon
             return (
               <Link
                 key={item.href}
@@ -168,7 +192,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   }
                 `}
               >
-                <span className="text-xl flex-shrink-0">{item.icon}</span>
+                <Icon
+                  className={`flex-shrink-0 h-[18px] w-[18px] lg:h-5 lg:w-5 ${
+                    isActive ? 'text-blue-600' : 'text-gray-500 group-hover:text-gray-700'
+                  }`}
+                  aria-hidden="true"
+                />
                 {sidebarOpen && (
                   <>
                     <span className="flex-1 text-sm">{item.label}</span>
@@ -199,7 +228,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-red-600 hover:bg-red-50 transition-all duration-200 font-medium text-sm"
           >
-            <span className="text-lg">🚪</span>
+            <LogOut
+              className="flex-shrink-0 h-[18px] w-[18px] lg:h-5 lg:w-5 text-red-500"
+              aria-hidden="true"
+            />
             {sidebarOpen && <span>Logout</span>}
           </button>
         </div>

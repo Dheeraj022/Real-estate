@@ -17,6 +17,7 @@ model User {
   name          String
   email         String    @unique
   password      String
+  emailVerified Boolean   @default(true)
   role          String    @default("agent") // "admin" or "agent"
   referralCode  String    @unique
   uplineId      String?
@@ -32,6 +33,7 @@ model User {
   wallet        Wallet?
   withdrawals   Withdrawal[]
   bankDetails   BankDetails?
+  visits        Visit[]
 
   @@index([uplineId])
   @@index([referralCode])
@@ -44,16 +46,21 @@ model Property {
   price                 Float
   description           String    // SQLite doesn't support @db.Text
   images                String    @default("[]") // Store as JSON string: "[\"url1\", \"url2\"]"
-  totalCommissionPercent Float     // Total commission percentage (e.g., 10%)
+  totalCommissionPercent Float     // Total commission percentage reserved for all levels (e.g., 40%)
   sellerPercent         Float     // Commission % for seller (Level 0)
   level1Percent         Float     // Commission % for Level 1
   level2Percent         Float     // Commission % for Level 2
+  level3Percent         Float     @default(0) // Commission % for Level 3
+  level4Percent         Float     @default(0) // Commission % for Level 4
+  level5Percent         Float     @default(0) // Commission % for Level 5
+  level6Percent         Float     @default(0) // Commission % for Level 6
   status                String    @default("active") // active, inactive
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
   // Relations
   sales                 Sale[]
+  visits                Visit[]
 
   @@index([status])
 }
@@ -154,4 +161,51 @@ model Withdrawal {
   @@index([status])
   @@index([bankDetailsId])
   @@index([isViewedByAdmin])
+}
+
+model Visit {
+  id               String    @id @default(uuid())
+  agentId          String
+  customerName     String
+  customerContact  String
+  photoUrl         String    // Can be a public URL or a data URL
+  visitMode        String    // "company" | "self"
+  propertyId       String
+  meetingBy        String    // e.g. "Company Staff"
+  meetingByName    String    @default("") @map("meeting_by_name") // Free-text company staff name entered by agent
+  numberOfPeople   Int
+  status           String    @default("submitted") // "submitted", "reviewed", etc.
+  isViewedByAdmin  Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relations
+  agent            User      @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  property         Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([agentId])
+  @@index([propertyId])
+  @@index([status])
+  @@index([isViewedByAdmin])
+}
+
+model EmailVerification {
+  id                String   @id @default(uuid())
+  name              String
+  email             String   @unique
+  password          String   // Hashed password
+  referralCodeInput String?
+  uplineId          String?
+  level             Int      @default(0)
+  otp               String
+  otpExpiresAt      DateTime
+  createdAt         DateTime @default(now())
+}
+
+model PasswordReset {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  otp          String
+  otpExpiresAt DateTime
+  createdAt    DateTime @default(now())
 }

@@ -19,20 +19,20 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      const response = await authAPI.login({ email, password })
+      const response = await authAPI.login({ email, password, loginType: 'agent' })
       const { user, token } = response.data.data
 
       setToken(token)
       toast.success('Login successful!')
 
-      // Redirect based on role
-      // If admin tries to login here, redirect to admin login page
-      if (user.role === 'admin') {
-        toast.info('Please use the admin login page')
-        router.push('/admin/admin-login')
-      } else {
-        router.push('/agent/dashboard')
+      // Backend enforces role; if we get here, user is an agent
+      if (user.role !== 'agent') {
+        toast.error('Access denied. Please use Admin Login.')
+        router.push('/admin/login')
+        return
       }
+
+      router.push('/agent/dashboard')
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Login failed')
     } finally {
@@ -49,16 +49,6 @@ export default function LoginPage() {
         <h2 className="text-xl font-semibold text-center mb-8 text-gray-700">
           Agent Login
         </h2>
-        
-        <div className="mb-6 text-center">
-          <Link 
-            href="/admin/admin-login" 
-            className="text-sm text-primary-600 hover:underline font-semibold"
-          >
-            Admin? Login here →
-          </Link>
-        </div>
-
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
@@ -88,6 +78,16 @@ export default function LoginPage() {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               placeholder="Enter your password"
             />
+          </div>
+
+          <div className="flex justify-end mb-2">
+            <button
+              type="button"
+              onClick={() => router.push('/forgot-password')}
+              className="text-xs text-gray-500 hover:text-primary-600 hover:underline transition-colors"
+            >
+              Forgot password?
+            </button>
           </div>
 
           <button

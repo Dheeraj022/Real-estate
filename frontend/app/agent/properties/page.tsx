@@ -17,6 +17,10 @@ interface Property {
   sellerPercent: number
   level1Percent: number
   level2Percent: number
+  level3Percent?: number
+  level4Percent?: number
+  level5Percent?: number
+  level6Percent?: number
   images: string[]
 }
 
@@ -62,7 +66,7 @@ export default function AgentPropertiesPage() {
               <p className="text-2xl font-bold text-primary-600 mb-2">{formatCurrency(property.price)}</p>
               <p className="text-sm text-gray-600 mb-4 line-clamp-3">{property.description}</p>
               
-              <div className="mb-4 p-3 bg-gray-50 rounded">
+              <div className="mb-4 p-3 bg-gray-50 rounded" style={{ color: '#111111' }}>
                 <p className="text-xs text-gray-600 mb-2 font-semibold">Commission Structure (Read-only):</p>
                 {property.totalCommissionPercent && (
                   <p className="text-sm font-semibold mb-2">Total Commission: {property.totalCommissionPercent.toFixed(1)}%</p>
@@ -71,9 +75,31 @@ export default function AgentPropertiesPage() {
                   <p className="text-sm">Seller: {property.sellerPercent}%</p>
                   <p className="text-sm">Level 1: {property.level1Percent}%</p>
                   <p className="text-sm">Level 2: {property.level2Percent}%</p>
+                  {property.level3Percent !== undefined && property.level3Percent > 0 && (
+                    <p className="text-sm">Level 3: {property.level3Percent}%</p>
+                  )}
+                  {property.level4Percent !== undefined && property.level4Percent > 0 && (
+                    <p className="text-sm">Level 4: {property.level4Percent}%</p>
+                  )}
+                  {property.level5Percent !== undefined && property.level5Percent > 0 && (
+                    <p className="text-sm">Level 5: {property.level5Percent}%</p>
+                  )}
+                  {property.level6Percent !== undefined && property.level6Percent > 0 && (
+                    <p className="text-sm">Level 6: {property.level6Percent}%</p>
+                  )}
                 </div>
                 <p className="text-xs text-gray-500 mt-2 pt-2 border-t">
-                  Breakup Total: {(property.sellerPercent + property.level1Percent + property.level2Percent).toFixed(1)}%
+                  Breakup Total:{' '}
+                  {(
+                    property.sellerPercent +
+                    property.level1Percent +
+                    property.level2Percent +
+                    (property.level3Percent || 0) +
+                    (property.level4Percent || 0) +
+                    (property.level5Percent || 0) +
+                    (property.level6Percent || 0)
+                  ).toFixed(1)}
+                  %
                 </p>
               </div>
 

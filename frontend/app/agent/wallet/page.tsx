@@ -92,8 +92,6 @@ export default function AgentWalletPage() {
     }
     if (!bankFormData.ifscCode.trim()) {
       errors.ifscCode = 'IFSC code is required'
-    } else if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(bankFormData.ifscCode.toUpperCase())) {
-      errors.ifscCode = 'IFSC code must be in format: AAAA0XXXXX'
     }
     if (!bankFormData.email.trim()) {
       errors.email = 'Email is required'

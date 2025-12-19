@@ -6,6 +6,18 @@ import { useRouter, usePathname } from 'next/navigation'
 import { authAPI } from '@/lib/api'
 import { removeToken, isAgent, type User } from '@/lib/auth'
 import toast from 'react-hot-toast'
+import type { LucideIcon } from 'lucide-react'
+import {
+  LayoutDashboard,
+  Home,
+  TrendingUp,
+  Percent,
+  Wallet as WalletIcon,
+  Network,
+  Link as LinkIcon,
+  MapPin,
+  LogOut
+} from 'lucide-react'
 
 interface AgentLayoutProps {
   children: React.ReactNode
@@ -26,7 +38,9 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
         setUser(userData)
 
         if (!isAgent(userData)) {
-          router.push('/admin/dashboard')
+          // Non-agent users cannot access /agent routes
+          removeToken()
+          router.push('/login')
         }
       } catch (error: any) {
         if (error.response?.status === 401) {
@@ -50,14 +64,15 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
     router.push('/login')
   }
 
-  const navItems = [
-    { href: '/agent/dashboard', label: 'Dashboard', icon: '📊' },
-    { href: '/agent/properties', label: 'Properties', icon: '🏠' },
-    { href: '/agent/sales', label: 'My Sales', icon: '💰' },
-    { href: '/agent/commissions', label: 'Commissions', icon: '💵' },
-    { href: '/agent/wallet', label: 'Wallet', icon: '💳' },
-    { href: '/agent/downline', label: 'Downline', icon: '👥' },
-    { href: '/agent/referral', label: 'Referral', icon: '🔗' },
+  const navItems: { href: string; label: string; icon: LucideIcon }[] = [
+    { href: '/agent/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/agent/properties', label: 'Properties', icon: Home },
+    { href: '/agent/sales', label: 'My Sales', icon: TrendingUp },
+    { href: '/agent/commissions', label: 'Commissions', icon: Percent },
+    { href: '/agent/wallet', label: 'Wallet', icon: WalletIcon },
+    { href: '/agent/downline', label: 'Downline', icon: Network },
+    { href: '/agent/referral', label: 'Referral', icon: LinkIcon },
+    { href: '/agent/visits', label: 'Visits', icon: MapPin },
   ]
 
   return (
@@ -108,6 +123,7 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             const isActive = pathname === item.href
+            const Icon = item.icon
             return (
               <Link
                 key={item.href}
@@ -122,7 +138,12 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
                   }
                 `}
               >
-                <span className="text-xl flex-shrink-0">{item.icon}</span>
+                <Icon
+                  className={`flex-shrink-0 h-[18px] w-[18px] lg:h-5 lg:w-5 ${
+                    isActive ? 'text-blue-600' : 'text-gray-500 group-hover:text-gray-700'
+                  }`}
+                  aria-hidden="true"
+                />
                 {sidebarOpen && <span className="flex-1 text-sm">{item.label}</span>}
               </Link>
             )
@@ -141,7 +162,10 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-red-600 hover:bg-red-50 transition-all duration-200 font-medium text-sm"
           >
-            <span className="text-lg">🚪</span>
+            <LogOut
+              className="flex-shrink-0 h-[18px] w-[18px] lg:h-5 lg:w-5 text-red-500"
+              aria-hidden="true"
+            />
             {sidebarOpen && <span>Logout</span>}
           </button>
         </div>

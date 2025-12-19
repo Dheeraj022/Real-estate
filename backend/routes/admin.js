@@ -1,5 +1,6 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
+const bcrypt = require('bcryptjs');
 const { PrismaClient } = require('@prisma/client');
 const { authenticate, isAdmin } = require('../middleware/auth');
 const { calculateCommissions, approveCommission, rejectCommission } = require('../utils/commission');
@@ -79,6 +80,10 @@ router.post('/properties', [
   body('sellerPercent').isFloat({ min: 0, max: 100 }).withMessage('Seller percent must be between 0 and 100'),
   body('level1Percent').isFloat({ min: 0, max: 100 }).withMessage('Level 1 percent must be between 0 and 100'),
   body('level2Percent').isFloat({ min: 0, max: 100 }).withMessage('Level 2 percent must be between 0 and 100'),
+  body('level3Percent').optional().isFloat({ min: 0, max: 100 }).withMessage('Level 3 percent must be between 0 and 100'),
+  body('level4Percent').optional().isFloat({ min: 0, max: 100 }).withMessage('Level 4 percent must be between 0 and 100'),
+  body('level5Percent').optional().isFloat({ min: 0, max: 100 }).withMessage('Level 5 percent must be between 0 and 100'),
+  body('level6Percent').optional().isFloat({ min: 0, max: 100 }).withMessage('Level 6 percent must be between 0 and 100'),
   body('images').optional().isArray().withMessage('Images must be an array')
 ], async (req, res) => {
   try {
@@ -91,13 +96,34 @@ router.post('/properties', [
       });
     }
 
-    const { name, location, price, description, totalCommissionPercent, sellerPercent, level1Percent, level2Percent, images = [] } = req.body;
+    const {
+      name,
+      location,
+      price,
+      description,
+      totalCommissionPercent,
+      sellerPercent,
+      level1Percent,
+      level2Percent,
+      level3Percent = 0,
+      level4Percent = 0,
+      level5Percent = 0,
+      level6Percent = 0,
+      images = []
+    } = req.body;
     
     // Convert images array to JSON string for SQLite
     const imagesJson = Array.isArray(images) ? JSON.stringify(images) : (images || '[]');
 
     // Validate commission percentages sum against total commission
-    const breakupSum = parseFloat(sellerPercent) + parseFloat(level1Percent) + parseFloat(level2Percent);
+    const breakupSum =
+      (parseFloat(sellerPercent) || 0) +
+      (parseFloat(level1Percent) || 0) +
+      (parseFloat(level2Percent) || 0) +
+      (parseFloat(level3Percent || 0)) +
+      (parseFloat(level4Percent || 0)) +
+      (parseFloat(level5Percent || 0)) +
+      (parseFloat(level6Percent || 0));
     const totalCommission = parseFloat(totalCommissionPercent);
     
     if (breakupSum > totalCommission) {
@@ -117,6 +143,10 @@ router.post('/properties', [
         sellerPercent: parseFloat(sellerPercent),
         level1Percent: parseFloat(level1Percent),
         level2Percent: parseFloat(level2Percent),
+        level3Percent: parseFloat(level3Percent || 0),
+        level4Percent: parseFloat(level4Percent || 0),
+        level5Percent: parseFloat(level5Percent || 0),
+        level6Percent: parseFloat(level6Percent || 0),
         images: imagesJson,
         status: 'active'
       }
@@ -151,6 +181,10 @@ router.put('/properties/:id', [
   body('sellerPercent').optional().isFloat({ min: 0, max: 100 }).withMessage('Seller percent must be between 0 and 100'),
   body('level1Percent').optional().isFloat({ min: 0, max: 100 }).withMessage('Level 1 percent must be between 0 and 100'),
   body('level2Percent').optional().isFloat({ min: 0, max: 100 }).withMessage('Level 2 percent must be between 0 and 100'),
+  body('level3Percent').optional().isFloat({ min: 0, max: 100 }).withMessage('Level 3 percent must be between 0 and 100'),
+  body('level4Percent').optional().isFloat({ min: 0, max: 100 }).withMessage('Level 4 percent must be between 0 and 100'),
+  body('level5Percent').optional().isFloat({ min: 0, max: 100 }).withMessage('Level 5 percent must be between 0 and 100'),
+  body('level6Percent').optional().isFloat({ min: 0, max: 100 }).withMessage('Level 6 percent must be between 0 and 100'),
   body('status').optional().isIn(['active', 'inactive']).withMessage('Status must be active or inactive')
 ], async (req, res) => {
   try {
@@ -199,6 +233,10 @@ router.put('/properties/:id', [
     let sellerPercent = existingProperty.sellerPercent;
     let level1Percent = existingProperty.level1Percent;
     let level2Percent = existingProperty.level2Percent;
+    let level3Percent = existingProperty.level3Percent || 0;
+    let level4Percent = existingProperty.level4Percent || 0;
+    let level5Percent = existingProperty.level5Percent || 0;
+    let level6Percent = existingProperty.level6Percent || 0;
 
     if (req.body.totalCommissionPercent !== undefined) {
       totalCommissionPercent = parseFloat(req.body.totalCommissionPercent);
@@ -244,10 +282,63 @@ router.put('/properties/:id', [
       updateData.level2Percent = level2Percent;
     }
 
+    if (req.body.level3Percent !== undefined) {
+      level3Percent = parseFloat(req.body.level3Percent);
+      if (isNaN(level3Percent)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Level 3 percent must be a valid number'
+        });
+      }
+      updateData.level3Percent = level3Percent;
+    }
+
+    if (req.body.level4Percent !== undefined) {
+      level4Percent = parseFloat(req.body.level4Percent);
+      if (isNaN(level4Percent)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Level 4 percent must be a valid number'
+        });
+      }
+      updateData.level4Percent = level4Percent;
+    }
+
+    if (req.body.level5Percent !== undefined) {
+      level5Percent = parseFloat(req.body.level5Percent);
+      if (isNaN(level5Percent)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Level 5 percent must be a valid number'
+        });
+      }
+      updateData.level5Percent = level5Percent;
+    }
+
+    if (req.body.level6Percent !== undefined) {
+      level6Percent = parseFloat(req.body.level6Percent);
+      if (isNaN(level6Percent)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Level 6 percent must be a valid number'
+        });
+      }
+      updateData.level6Percent = level6Percent;
+    }
+
     // Validate commission breakup (only if commission fields are being updated)
     if (req.body.totalCommissionPercent !== undefined || req.body.sellerPercent !== undefined || 
-        req.body.level1Percent !== undefined || req.body.level2Percent !== undefined) {
-      const breakupSum = sellerPercent + level1Percent + level2Percent;
+        req.body.level1Percent !== undefined || req.body.level2Percent !== undefined ||
+        req.body.level3Percent !== undefined || req.body.level4Percent !== undefined ||
+        req.body.level5Percent !== undefined || req.body.level6Percent !== undefined) {
+      const breakupSum =
+        sellerPercent +
+        level1Percent +
+        level2Percent +
+        level3Percent +
+        level4Percent +
+        level5Percent +
+        level6Percent;
       if (breakupSum > totalCommissionPercent) {
         return res.status(400).json({
           success: false,
@@ -434,6 +525,216 @@ router.get('/users/:id', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch user',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   PUT /api/admin/users/:id
+ * @desc    Update basic agent profile details (name, email)
+ * @access  Private (Admin only)
+ */
+router.put('/users/:id', [
+  body('name').trim().notEmpty().withMessage('Name is required'),
+  body('email').isEmail().withMessage('Please provide a valid email')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { name, email } = req.body;
+
+    // Ensure user exists and is an agent
+    const existing = await prisma.user.findUnique({
+      where: { id: req.params.id }
+    });
+
+    if (!existing || existing.role !== 'agent') {
+      return res.status(404).json({
+        success: false,
+        message: 'Agent not found'
+      });
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: req.params.id },
+      data: {
+        name,
+        email
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        referralCode: true,
+        level: true,
+        createdAt: true,
+        upline: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Agent updated successfully',
+      data: { user: updatedUser }
+    });
+  } catch (error) {
+    console.error('Update agent error:', error);
+
+    // Handle unique email constraint
+    if (error.code === 'P2002') {
+      return res.status(400).json({
+        success: false,
+        message: 'Email already exists. Please use a different email.'
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update agent',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   DELETE /api/admin/users/:id
+ * @desc    Delete agent profile (blocked if agent has activity)
+ * @access  Private (Admin only)
+ */
+router.delete('/users/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    const user = await prisma.user.findUnique({
+      where: { id }
+    });
+
+    if (!user || user.role !== 'agent') {
+      return res.status(404).json({
+        success: false,
+        message: 'Agent not found'
+      });
+    }
+
+    // Check for related activity to avoid breaking MLM / commissions
+    const [
+      salesCount,
+      commissionsCount,
+      withdrawalsCount,
+      downlinesCount,
+      visitsCount
+    ] = await Promise.all([
+      prisma.sale.count({ where: { sellerId: id } }),
+      prisma.commission.count({ where: { userId: id } }),
+      prisma.withdrawal.count({ where: { userId: id } }),
+      prisma.user.count({ where: { uplineId: id } }),
+      prisma.visit.count({ where: { agentId: id } })
+    ]);
+
+    if (
+      salesCount > 0 ||
+      commissionsCount > 0 ||
+      withdrawalsCount > 0 ||
+      downlinesCount > 0 ||
+      visitsCount > 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'Cannot delete this agent because they have existing sales, commissions, withdrawals, downline, or visit records. Deletion is blocked to protect MLM and commission history.'
+      });
+    }
+
+    await prisma.user.delete({
+      where: { id }
+    });
+
+    res.json({
+      success: true,
+      message: 'Agent deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete agent error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete agent',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   POST /api/admin/users/:id/reset-password
+ * @desc    Set a new password for an agent (admin-provided)
+ * @access  Private (Admin only)
+ */
+router.post('/users/:id/reset-password', [
+  body('password')
+    .isLength({ min: 6 })
+    .withMessage('Password must be at least 6 characters')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.length === 0 && !errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const id = req.params.id;
+    const { password } = req.body;
+
+    const user = await prisma.user.findUnique({
+      where: { id }
+    });
+
+    if (!user || user.role !== 'agent') {
+      return res.status(404).json({
+        success: false,
+        message: 'Agent not found'
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await prisma.user.update({
+      where: { id },
+      data: {
+        password: hashedPassword
+      }
+    });
+
+    console.log('Admin updated agent password', {
+      adminId: req.user.id,
+      agentId: id,
+      timestamp: new Date().toISOString()
+    });
+
+    res.json({
+      success: true,
+      message: 'Agent password updated successfully'
+    });
+  } catch (error) {
+    console.error('Reset agent password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update agent password',
       error: error.message
     });
   }
@@ -689,6 +990,82 @@ router.put('/sales/:id/reject', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to reject sale',
+      error: error.message
+    });
+  }
+});
+
+// ==================== VISIT MANAGEMENT ====================
+
+/**
+ * @route   GET /api/admin/visits
+ * @desc    Get all visits (with optional filters)
+ * @access  Private (Admin only)
+ */
+router.get('/visits', async (req, res) => {
+  try {
+    const { page = 1, limit = 10, agentId, propertyId, customer } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const where = {};
+
+    if (agentId) {
+      where.agentId = agentId;
+    }
+
+    if (propertyId) {
+      where.propertyId = propertyId;
+    }
+
+    if (customer && customer.trim()) {
+      where.customerName = {
+        contains: customer.trim()
+      };
+    }
+
+    const [visits, total] = await Promise.all([
+      prisma.visit.findMany({
+        where,
+        skip,
+        take: parseInt(limit),
+        include: {
+          agent: {
+            select: {
+              id: true,
+              name: true,
+              email: true
+            }
+          },
+          property: {
+            select: {
+              id: true,
+              name: true,
+              location: true
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.visit.count({ where })
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        visits,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / parseInt(limit))
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get visits error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch visits',
       error: error.message
     });
   }
@@ -993,7 +1370,7 @@ router.put('/withdrawals/:id/reject', async (req, res) => {
  */
 router.get('/notifications/counts', async (req, res) => {
   try {
-    const [salesCount, commissionsCount, withdrawalsCount] = await Promise.all([
+    const [salesCount, commissionsCount, withdrawalsCount, visitsCount] = await Promise.all([
       prisma.sale.count({
         where: { isViewedByAdmin: false }
       }),
@@ -1001,6 +1378,9 @@ router.get('/notifications/counts', async (req, res) => {
         where: { isViewedByAdmin: false }
       }),
       prisma.withdrawal.count({
+        where: { isViewedByAdmin: false }
+      }),
+      prisma.visit.count({
         where: { isViewedByAdmin: false }
       })
     ]);
@@ -1010,7 +1390,8 @@ router.get('/notifications/counts', async (req, res) => {
       data: {
         sales: salesCount,
         commissions: commissionsCount,
-        withdrawals: withdrawalsCount
+        withdrawals: withdrawalsCount,
+        visits: visitsCount
       }
     });
   } catch (error) {
@@ -1096,6 +1477,32 @@ router.post('/notifications/mark-withdrawals-viewed', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to mark withdrawals as viewed',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   POST /api/admin/notifications/mark-visits-viewed
+ * @desc    Mark all visits as viewed by admin
+ * @access  Private (Admin only)
+ */
+router.post('/notifications/mark-visits-viewed', async (req, res) => {
+  try {
+    await prisma.visit.updateMany({
+      where: { isViewedByAdmin: false },
+      data: { isViewedByAdmin: true }
+    });
+
+    res.json({
+      success: true,
+      message: 'Visits marked as viewed'
+    });
+  } catch (error) {
+    console.error('Mark visits viewed error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to mark visits as viewed',
       error: error.message
     });
   }

@@ -58,8 +58,17 @@ api.interceptors.response.use(
 export const authAPI = {
   register: (data: { name: string; email: string; password: string; referralCode?: string }) =>
     api.post('/auth/register', data),
-  login: (data: { email: string; password: string }) =>
+  login: (data: { email: string; password: string; loginType?: 'admin' | 'agent' }) =>
     api.post('/auth/login', data),
+  verifyOtp: (data: { email: string; otp: string }) =>
+    api.post('/auth/verify-otp', data),
+  // Password reset (agent) - assumes backend endpoints already exist
+  requestPasswordReset: (data: { email: string }) =>
+    api.post('/auth/forgot-password', data),
+  verifyPasswordResetOtp: (data: { email: string; otp: string }) =>
+    api.post('/auth/forgot-password/verify-otp', data),
+  resetPassword: (data: { email: string; otp: string; password: string }) =>
+    api.post('/auth/forgot-password/reset', data),
   getMe: () => api.get('/auth/me'),
 };
 
@@ -81,6 +90,11 @@ export const adminAPI = {
   getUsers: (params?: { page?: number; limit?: number; search?: string }) =>
     api.get('/admin/users', { params }),
   getUserById: (id: string) => api.get(`/admin/users/${id}`),
+  updateUser: (id: string, data: { name: string; email: string }) =>
+    api.put(`/admin/users/${id}`, data),
+  deleteUser: (id: string) => api.delete(`/admin/users/${id}`),
+  resetUserPassword: (id: string, data: { password: string }) =>
+    api.post(`/admin/users/${id}/reset-password`, data),
   getMLMTree: () => api.get('/admin/mlm-tree'),
   // Sales
   getSales: (params?: { status?: string; page?: number; limit?: number; propertyId?: string; buyer?: string }) =>
@@ -97,11 +111,15 @@ export const adminAPI = {
     api.get('/admin/withdrawals', { params }),
   approveWithdrawal: (id: string) => api.put(`/admin/withdrawals/${id}/approve`),
   rejectWithdrawal: (id: string) => api.put(`/admin/withdrawals/${id}/reject`),
+  // Visits
+  getVisits: (params?: { page?: number; limit?: number; agentId?: string; propertyId?: string; customer?: string }) =>
+    api.get('/admin/visits', { params }),
   // Notifications
   getNotificationCounts: () => api.get('/admin/notifications/counts'),
   markSalesViewed: () => api.post('/admin/notifications/mark-sales-viewed'),
   markCommissionsViewed: () => api.post('/admin/notifications/mark-commissions-viewed'),
   markWithdrawalsViewed: () => api.post('/admin/notifications/mark-withdrawals-viewed'),
+  markVisitsViewed: () => api.post('/admin/notifications/mark-visits-viewed'),
 };
 
 // Agent API
@@ -125,6 +143,18 @@ export const agentAPI = {
   requestWithdrawal: (data: { amount: number }) => api.post('/agent/withdrawals', data),
   getWithdrawals: (params?: { status?: string; page?: number; limit?: number }) =>
     api.get('/agent/withdrawals', { params }),
+  // Visits
+  submitVisit: (data: {
+    customerName: string
+    customerContact: string
+    photoUrl: string
+    visitMode: 'company' | 'self'
+    propertyId: string
+    meetingByName: string
+    numberOfPeople: number
+  }) => api.post('/agent/visits', data),
+  getVisits: (params?: { page?: number; limit?: number }) =>
+    api.get('/agent/visits', { params }),
   // Downline
   getDownline: () => api.get('/agent/downline'),
   getReferralInfo: () => api.get('/agent/referral-info'),

@@ -5,14 +5,15 @@ const prisma = new PrismaClient();
 /**
  * Calculate and create commission records for a sale
  * 
- * IMPORTANT: Commission is limited to 3 levels (0, 1, 2) regardless of actual tree depth.
- * The referral tree can have unlimited depth, but commissions are only paid up to Level 2.
+ * IMPORTANT: Commission is limited to Level 6 (Seller + Levels 1–6) regardless of actual tree depth.
+ * The referral tree can have unlimited depth, but commissions are only paid up to Level 6.
  * 
  * Commission levels:
  * - Level 0: Seller (the agent who made the sale)
  * - Level 1: Seller's direct upline
  * - Level 2: Seller's upline's upline
- * - Level 3+: No commission (but referral connection still exists in database)
+ * - Level 3–6: Higher uplines (up to 6th level)
+ * - Level 7+: No commission (but referral connection still exists in database)
  * 
  * @param {string} saleId - The ID of the approved sale
  * @param {string} sellerId - The ID of the agent who made the sale
@@ -30,10 +31,28 @@ async function calculateCommissions(saleId, sellerId, propertyId, saleAmount) {
       throw new Error('Property not found');
     }
 
-    // Validate commission percentages sum
-    const totalPercent = property.sellerPercent + property.level1Percent + property.level2Percent;
-    if (totalPercent > 100) {
-      throw new Error('Total commission percentage cannot exceed 100%');
+    // Validate commission percentages sum against property's totalCommissionPercent
+    const sellerPercent = property.sellerPercent || 0;
+    const level1Percent = property.level1Percent || 0;
+    const level2Percent = property.level2Percent || 0;
+    const level3Percent = property.level3Percent || 0;
+    const level4Percent = property.level4Percent || 0;
+    const level5Percent = property.level5Percent || 0;
+    const level6Percent = property.level6Percent || 0;
+
+    const breakupSum =
+      sellerPercent +
+      level1Percent +
+      level2Percent +
+      level3Percent +
+      level4Percent +
+      level5Percent +
+      level6Percent;
+
+    const maxCommissionPercent = property.totalCommissionPercent || 100;
+
+    if (breakupSum > maxCommissionPercent) {
+      throw new Error('Total commission breakup cannot exceed total commission percentage');
     }
 
     // Fetch seller with upline chain
@@ -65,20 +84,20 @@ async function calculateCommissions(saleId, sellerId, propertyId, saleAmount) {
       });
     }
 
-    // Traverse upline chain recursively, but stop at Level 2 for commissions
+    // Traverse upline chain recursively, but stop at Level 6 for commissions
     // 
     // IMPORTANT MLM RULES:
     // - Referral tree can have UNLIMITED depth (stored in database)
-    // - Commission is LIMITED to 3 levels only (0, 1, 2)
+    // - Commission is LIMITED to 7 levels only (Seller + Levels 1–6)
     // - Any agent at any level can refer unlimited agents (unlimited width)
     // - Commission calculation stops here, but referral connections continue deeper
     //
     let currentUserId = seller.uplineId;
     let commissionLevel = 1; // Start at Level 1 (seller's direct upline)
 
-    // Traverse upline chain, but only calculate commissions up to Level 2
-    // Levels beyond 2 exist in the tree but receive no commission
-    while (currentUserId && commissionLevel <= 2) {
+    // Traverse upline chain, but only calculate commissions up to Level 6
+    // Levels beyond 6 exist in the tree but receive no commission
+    while (currentUserId && commissionLevel <= 6) {
       const upline = await prisma.user.findUnique({
         where: { id: currentUserId },
         select: {
@@ -91,13 +110,21 @@ async function calculateCommissions(saleId, sellerId, propertyId, saleAmount) {
         break; // Upline not found, stop traversal
       }
 
-      // Calculate commission based on commission level (1 or 2)
-      // Level 3+ uplines exist but get no commission
+      // Calculate commission based on commission level (1–6)
+      // Level 7+ uplines exist but get no commission
       let percentage = 0;
       if (commissionLevel === 1 && property.level1Percent > 0) {
         percentage = property.level1Percent;
       } else if (commissionLevel === 2 && property.level2Percent > 0) {
         percentage = property.level2Percent;
+      } else if (commissionLevel === 3 && property.level3Percent > 0) {
+        percentage = property.level3Percent;
+      } else if (commissionLevel === 4 && property.level4Percent > 0) {
+        percentage = property.level4Percent;
+      } else if (commissionLevel === 5 && property.level5Percent > 0) {
+        percentage = property.level5Percent;
+      } else if (commissionLevel === 6 && property.level6Percent > 0) {
+        percentage = property.level6Percent;
       }
 
       if (percentage > 0) {
@@ -119,7 +146,7 @@ async function calculateCommissions(saleId, sellerId, propertyId, saleAmount) {
       commissionLevel++;
     }
     
-    // At this point, if commissionLevel > 2, there are more uplines in the chain
+    // At this point, if commissionLevel > 6, there are more uplines in the chain
     // but they don't receive commissions (as per MLM rules)
 
     // Create all commission records

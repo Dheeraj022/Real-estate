@@ -111,9 +111,9 @@ export default function AgentReferralPage() {
           <ul className="list-disc list-inside space-y-2 text-sm text-blue-700">
             <li>Share your referral link with potential agents</li>
             <li>When they register using your link, they become your downline</li>
-            <li>You earn commissions from their sales (Level 1)</li>
-            <li>You also earn from your downline's downline (Level 2)</li>
-            <li>Maximum depth is 3 levels</li>
+            <li>You earn commissions from your direct downline&apos;s sales (Level 1)</li>
+            <li>You also earn from deeper levels in your network, up to Level 6 (Level 2, Level 3, Level 4, Level 5, Level 6)</li>
+            <li>The referral tree can grow to unlimited depth, but commission is only paid up to Level 6 as per the property&apos;s commission breakup.</li>
           </ul>
         </div>
       </div>

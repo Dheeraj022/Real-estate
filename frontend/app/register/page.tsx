@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { authAPI } from '@/lib/api'
-import { setToken } from '@/lib/auth'
 import toast from 'react-hot-toast'
 
 export default function RegisterPage() {
@@ -28,18 +27,18 @@ export default function RegisterPage() {
     setLoading(true)
 
     try {
-      const response = await authAPI.register({
+      await authAPI.register({
         name,
         email,
         password,
         referralCode: referralCode && referralCode.trim() !== '' ? referralCode.trim() : undefined,
       })
-      const { user, token } = response.data.data
 
-      setToken(token)
-      toast.success('Registration successful!')
+      toast.success('OTP sent to your email')
 
-      router.push('/agent/dashboard')
+      // Redirect to verify email screen with email as query param
+      const params = new URLSearchParams({ email })
+      router.push(`/verify-email?${params.toString()}`)
     } catch (error: any) {
       console.error('Registration error:', error)
       

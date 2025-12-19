@@ -2,10 +2,18 @@ const jwt = require('jsonwebtoken');
 
 /**
  * Generate JWT token for user
+ *
+ * Includes userId and role in the payload; can optionally
+ * include email as an extra claim for frontend awareness.
+ * Backend auth still relies on userId + DB lookup.
  */
-const generateToken = (userId) => {
+const generateToken = (userId, role, email) => {
+  const payload = { userId };
+  if (role) payload.role = role;
+  if (email) payload.email = email;
+
   return jwt.sign(
-    { userId },
+    payload,
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRE || '7d' }
   );

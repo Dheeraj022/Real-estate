@@ -16,6 +16,10 @@ interface Property {
   sellerPercent: number
   level1Percent: number
   level2Percent: number
+   level3Percent?: number
+   level4Percent?: number
+   level5Percent?: number
+   level6Percent?: number
   status: string
   images: string[]
 }
@@ -34,6 +38,10 @@ export default function AdminPropertiesPage() {
     sellerPercent: '',
     level1Percent: '',
     level2Percent: '',
+    level3Percent: '',
+    level4Percent: '',
+    level5Percent: '',
+    level6Percent: '',
     status: 'active',
     images: [] as string[],
   })
@@ -67,8 +75,12 @@ export default function AdminPropertiesPage() {
     const sellerPercent = parseFloat(formData.sellerPercent) || 0
     const level1Percent = parseFloat(formData.level1Percent) || 0
     const level2Percent = parseFloat(formData.level2Percent) || 0
+    const level3Percent = parseFloat(formData.level3Percent) || 0
+    const level4Percent = parseFloat(formData.level4Percent) || 0
+    const level5Percent = parseFloat(formData.level5Percent) || 0
+    const level6Percent = parseFloat(formData.level6Percent) || 0
     
-    const sum = sellerPercent + level1Percent + level2Percent
+    const sum = sellerPercent + level1Percent + level2Percent + level3Percent + level4Percent + level5Percent + level6Percent
     
     if (sum > totalCommission) {
       setCommissionError('Total commission breakup cannot exceed total commission percentage')
@@ -98,6 +110,10 @@ export default function AdminPropertiesPage() {
           sellerPercent: parseFloat(formData.sellerPercent),
           level1Percent: parseFloat(formData.level1Percent),
           level2Percent: parseFloat(formData.level2Percent),
+          level3Percent: parseFloat(formData.level3Percent) || 0,
+          level4Percent: parseFloat(formData.level4Percent) || 0,
+          level5Percent: parseFloat(formData.level5Percent) || 0,
+          level6Percent: parseFloat(formData.level6Percent) || 0,
           status: formData.status,
         }
         await adminAPI.updateProperty(editingProperty.id, updatePayload)
@@ -126,6 +142,10 @@ export default function AdminPropertiesPage() {
       sellerPercent: property.sellerPercent.toString(),
       level1Percent: property.level1Percent.toString(),
       level2Percent: property.level2Percent.toString(),
+      level3Percent: (property.level3Percent ?? 0).toString(),
+      level4Percent: (property.level4Percent ?? 0).toString(),
+      level5Percent: (property.level5Percent ?? 0).toString(),
+      level6Percent: (property.level6Percent ?? 0).toString(),
       status: property.status,
       images: property.images,
     })
@@ -155,6 +175,10 @@ export default function AdminPropertiesPage() {
       sellerPercent: '',
       level1Percent: '',
       level2Percent: '',
+      level3Percent: '',
+      level4Percent: '',
+      level5Percent: '',
+      level6Percent: '',
       status: 'active',
       images: [],
     })
@@ -198,10 +222,35 @@ export default function AdminPropertiesPage() {
               
               <div className="mb-4 p-3 bg-gray-50 rounded">
                 <p className="text-xs text-gray-600 mb-1">Commission Structure:</p>
-                <p className="text-sm font-semibold">Total Commission: {property.totalCommissionPercent?.toFixed(1) || (property.sellerPercent + property.level1Percent + property.level2Percent).toFixed(1)}%</p>
+                <p className="text-sm font-semibold">
+                  Total Commission:{' '}
+                  {property.totalCommissionPercent?.toFixed(1) ||
+                    (
+                      property.sellerPercent +
+                      property.level1Percent +
+                      property.level2Percent +
+                      (property.level3Percent || 0) +
+                      (property.level4Percent || 0) +
+                      (property.level5Percent || 0) +
+                      (property.level6Percent || 0)
+                    ).toFixed(1)}
+                  %
+                </p>
                 <p className="text-sm">Seller: {property.sellerPercent}%</p>
                 <p className="text-sm">Level 1: {property.level1Percent}%</p>
                 <p className="text-sm">Level 2: {property.level2Percent}%</p>
+                {property.level3Percent !== undefined && property.level3Percent > 0 && (
+                  <p className="text-sm">Level 3: {property.level3Percent}%</p>
+                )}
+                {property.level4Percent !== undefined && property.level4Percent > 0 && (
+                  <p className="text-sm">Level 4: {property.level4Percent}%</p>
+                )}
+                {property.level5Percent !== undefined && property.level5Percent > 0 && (
+                  <p className="text-sm">Level 5: {property.level5Percent}%</p>
+                )}
+                {property.level6Percent !== undefined && property.level6Percent > 0 && (
+                  <p className="text-sm">Level 6: {property.level6Percent}%</p>
+                )}
               </div>
 
               <div className="flex gap-2">
@@ -339,6 +388,72 @@ export default function AdminPropertiesPage() {
                     />
                   </div>
                 </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Level 3 %</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={formData.level3Percent}
+                      onChange={(e) => {
+                        setFormData({ ...formData, level3Percent: e.target.value })
+                        setCommissionError('')
+                      }}
+                      onBlur={validateCommission}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                      placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Level 4 %</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={formData.level4Percent}
+                      onChange={(e) => {
+                        setFormData({ ...formData, level4Percent: e.target.value })
+                        setCommissionError('')
+                      }}
+                      onBlur={validateCommission}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                      placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Level 5 %</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={formData.level5Percent}
+                      onChange={(e) => {
+                        setFormData({ ...formData, level5Percent: e.target.value })
+                        setCommissionError('')
+                      }}
+                      onBlur={validateCommission}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                      placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Level 6 %</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={formData.level6Percent}
+                      onChange={(e) => {
+                        setFormData({ ...formData, level6Percent: e.target.value })
+                        setCommissionError('')
+                      }}
+                      onBlur={validateCommission}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
                 {commissionError && (
                   <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
                     <p className="text-sm font-medium">{commissionError}</p>
@@ -348,8 +463,29 @@ export default function AdminPropertiesPage() {
                   <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-2 rounded-lg">
                     <p className="text-xs">
                       Total Commission: {formData.totalCommissionPercent}% | 
-                      Breakup Sum: {(parseFloat(formData.sellerPercent) || 0) + (parseFloat(formData.level1Percent) || 0) + (parseFloat(formData.level2Percent) || 0)}% | 
-                      Remaining: {((parseFloat(formData.totalCommissionPercent) || 0) - ((parseFloat(formData.sellerPercent) || 0) + (parseFloat(formData.level1Percent) || 0) + (parseFloat(formData.level2Percent) || 0))).toFixed(1)}%
+                      Breakup Sum:{' '}
+                      {(parseFloat(formData.sellerPercent) || 0) +
+                        (parseFloat(formData.level1Percent) || 0) +
+                        (parseFloat(formData.level2Percent) || 0) +
+                        (parseFloat(formData.level3Percent) || 0) +
+                        (parseFloat(formData.level4Percent) || 0) +
+                        (parseFloat(formData.level5Percent) || 0) +
+                        (parseFloat(formData.level6Percent) || 0)}
+                      % | 
+                      Remaining:{' '}
+                      {(
+                        (parseFloat(formData.totalCommissionPercent) || 0) -
+                        (
+                          (parseFloat(formData.sellerPercent) || 0) +
+                          (parseFloat(formData.level1Percent) || 0) +
+                          (parseFloat(formData.level2Percent) || 0) +
+                          (parseFloat(formData.level3Percent) || 0) +
+                          (parseFloat(formData.level4Percent) || 0) +
+                          (parseFloat(formData.level5Percent) || 0) +
+                          (parseFloat(formData.level6Percent) || 0)
+                        )
+                      ).toFixed(1)}
+                      %
                     </p>
                   </div>
                 )}

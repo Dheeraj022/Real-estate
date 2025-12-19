@@ -722,5 +722,144 @@ router.get('/referral-info', async (req, res) => {
   }
 });
 
+// ==================== VISIT MANAGEMENT (AGENT) ====================
+
+/**
+ * @route   POST /api/agent/visits
+ * @desc    Submit a new customer visit
+ * @access  Private (Agent only)
+ */
+router.post('/visits', [
+  body('customerName').trim().notEmpty().withMessage('Customer name is required'),
+  body('customerContact').trim().notEmpty().withMessage('Customer contact number is required'),
+  body('photoUrl').trim().notEmpty().withMessage('Visit photo is required'),
+  body('visitMode').isIn(['company', 'self']).withMessage('Visit mode must be company or self'),
+  body('propertyId').trim().notEmpty().withMessage('Property is required'),
+  body('meetingByName')
+    .trim()
+    .isLength({ min: 2 })
+    .withMessage('Company staff name must be at least 2 characters'),
+  body('numberOfPeople').isInt({ min: 1 }).withMessage('Number of people must be at least 1')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const {
+      customerName,
+      customerContact,
+      photoUrl,
+      visitMode,
+      propertyId,
+      meetingByName,
+      numberOfPeople
+    } = req.body;
+
+    const agentId = req.user.id;
+
+    // Verify property exists
+    const property = await prisma.property.findUnique({
+      where: { id: propertyId },
+      select: { id: true }
+    });
+
+    if (!property) {
+      return res.status(404).json({
+        success: false,
+        message: 'Property not found'
+      });
+    }
+
+    const visit = await prisma.visit.create({
+      data: {
+        agentId,
+        customerName: customerName.trim(),
+        customerContact: customerContact.trim(),
+        photoUrl: photoUrl.trim(),
+        visitMode,
+        propertyId,
+        // Keep meetingBy for backward compatibility, but store free-text staff name separately
+        meetingBy: 'Company Staff',
+        meetingByName: meetingByName.trim(),
+        numberOfPeople: parseInt(numberOfPeople, 10),
+        status: 'submitted',
+        isViewedByAdmin: false
+      }
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Visit submitted successfully.',
+      data: { visit }
+    });
+  } catch (error) {
+    console.error('Create visit error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to submit visit',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   GET /api/agent/visits
+ * @desc    Get agent's visits
+ * @access  Private (Agent only)
+ */
+router.get('/visits', async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const where = { agentId: req.user.id };
+
+    const [visits, total] = await Promise.all([
+      prisma.visit.findMany({
+        where,
+        skip,
+        take: parseInt(limit),
+        include: {
+          property: {
+            select: {
+              id: true,
+              name: true,
+              location: true
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.visit.count({ where })
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        visits,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / parseInt(limit))
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get visits error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch visits',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;
 
