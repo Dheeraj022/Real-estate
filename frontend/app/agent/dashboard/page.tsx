@@ -65,7 +65,9 @@ export default function AgentDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <p className="text-sm opacity-90">Total Balance</p>
-              <p className="text-3xl font-bold">{formatCurrency(data?.wallet.balance)}</p>
+              <p className="text-3xl font-bold">
+  {formatCurrency(data?.wallet?.balance ?? 0)}
+</p>
             </div>
             <div>
               <p className="text-sm opacity-90">Pending</p>
