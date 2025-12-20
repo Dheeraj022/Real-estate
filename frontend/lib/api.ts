@@ -1,7 +1,16 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+// Ensure API_URL always ends with /api
+const getApiUrl = () => {
+  const url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  // Remove trailing slash if present
+  const cleanUrl = url.replace(/\/$/, '');
+  // Ensure /api suffix is present
+  return cleanUrl.endsWith('/api') ? cleanUrl : `${cleanUrl}/api`;
+};
+
+const API_URL = getApiUrl();
 
 // Create axios instance with timeout
 const api = axios.create({
