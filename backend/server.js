@@ -10,9 +10,11 @@ const app = express();
 const prisma = new PrismaClient();
 
 // Middleware
+// CORS configuration - allows requests from any origin (including localhost and production)
+// This is safe because authentication is handled via JWT tokens
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
+  origin: true, // Allow all origins (localhost and production)
+  credentials: true // Allow cookies/auth headers
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
