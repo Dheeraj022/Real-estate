@@ -16,22 +16,29 @@ const allowedOrigins = [
   'https://real-estate-frontend-13q0.onrender.com'
 ];
 
+// CORS middleware - must be before all routes
 app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps, Postman, or server-to-server)
-    if (!origin) return callback(null, true);
+    if (!origin) {
+      return callback(null, true);
+    }
     
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    // Check if origin is in allowed list
+    if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      // Reject unlisted origins
-      callback(new Error(`CORS: Origin ${origin} is not allowed`));
+      // Log the attempted origin for debugging
+      console.warn(`CORS: Blocked origin: ${origin}`);
+      callback(new Error(`Not allowed by CORS: ${origin}`));
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  exposedHeaders: ['Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  exposedHeaders: ['Authorization'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -49,7 +56,16 @@ app.get('/api/health', (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  // Handle CORS errors specifically
+  if (err.message && err.message.includes('CORS')) {
+    console.warn(`CORS Error: ${err.message}`);
+    return res.status(403).json({
+      success: false,
+      message: err.message || 'CORS policy violation'
+    });
+  }
+  
+  console.error('Error:', err.stack);
   res.status(err.status || 500).json({
     success: false,
     message: err.message || 'Internal server error',
