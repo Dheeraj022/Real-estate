@@ -16,9 +16,16 @@ if (!process.env.DATABASE_URL) {
   console.log(`✅ DATABASE_URL is set: ${process.env.DATABASE_URL}`);
 }
 
-// Ensure DATABASE_URL starts with file: for SQLite
-if (process.env.DATABASE_URL && !process.env.DATABASE_URL.startsWith('file:')) {
-  console.warn('⚠️  DATABASE_URL does not start with "file:", this may cause issues with SQLite');
+// Check database type
+if (process.env.DATABASE_URL) {
+  const dbUrl = process.env.DATABASE_URL;
+  if (dbUrl.includes('file:')) {
+    console.log('📦 Database type: SQLite');
+  } else if (dbUrl.includes('postgresql://') || dbUrl.includes('postgres://') || dbUrl.startsWith('psql')) {
+    console.log('🐘 Database type: PostgreSQL');
+  } else {
+    console.warn('⚠️  Unknown database URL format');
+  }
 }
 
 // Ensure the prisma directory exists

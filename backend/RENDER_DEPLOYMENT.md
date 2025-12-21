@@ -11,10 +11,35 @@ JWT_SECRET=myRealEstateAppJWT@2025
 **Important:** Server will crash on startup if this is missing.
 
 ### 2. DATABASE_URL (REQUIRED for Build)
+
+**For PostgreSQL (Production - Neon/Render/etc):**
+```
+DATABASE_URL=postgresql://user:password@host:port/database?sslmode=require
+```
+
+**IMPORTANT - Fix Your Current DATABASE_URL:**
+
+Your current DATABASE_URL looks like this (WRONG):
+```
+psql 'postgresql://neondb_owner:password@host/database?sslmode=require'
+```
+
+It should be this (CORRECT):
+```
+postgresql://neondb_owner:password@host/database?sslmode=require
+```
+
+**Steps to Fix:**
+1. Go to Render Dashboard → Your Service → Environment
+2. Find `DATABASE_URL`
+3. Remove the `psql '` at the start and `'` at the end
+4. Keep only the connection string: `postgresql://...`
+5. Save and redeploy
+
+**For SQLite (Local Development):**
 ```
 DATABASE_URL=file:./prisma/dev.db
 ```
-**Important:** This must be set for Prisma to validate the schema during build.
 
 ### 3. PORT (Optional)
 ```

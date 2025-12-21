@@ -14,6 +14,7 @@ if (!process.env.JWT_SECRET) {
 }
 
 // Set default DATABASE_URL for SQLite if not provided (local development)
+// Note: In production (Render), DATABASE_URL should be set to PostgreSQL connection string
 if (!process.env.DATABASE_URL) {
   process.env.DATABASE_URL = 'file:./prisma/dev.db';
   console.warn('⚠️  DATABASE_URL not set, using default SQLite: file:./prisma/dev.db');
@@ -101,7 +102,17 @@ app.use((req, res) => {
 async function initializeDatabase() {
   try {
     await prisma.$connect();
-    const dbProvider = process.env.DATABASE_URL?.includes('file:') ? 'SQLite' : 'Other';
+    const dbUrl = process.env.DATABASE_URL || '';
+    let dbProvider = 'Unknown';
+    
+    if (dbUrl.includes('file:')) {
+      dbProvider = 'SQLite';
+    } else if (dbUrl.includes('postgresql://') || dbUrl.includes('postgres://')) {
+      dbProvider = 'PostgreSQL';
+    } else if (dbUrl.startsWith('psql')) {
+      dbProvider = 'PostgreSQL (Neon)';
+    }
+    
     console.log(`✅ Database connected (${dbProvider})`);
     console.log(`✅ JWT_SECRET configured: ${process.env.JWT_SECRET ? 'Yes' : 'No'}`);
   } catch (error) {
