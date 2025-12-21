@@ -15,10 +15,11 @@ const API_URL = getApiUrl();
 // Create axios instance with timeout
 const api = axios.create({
   baseURL: API_URL,
-  timeout: 10000, // 10 seconds timeout
+  timeout: 15000, // 15 seconds timeout (increased for Render cold starts)
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Include credentials for CORS
 });
 
 // Add token to requests

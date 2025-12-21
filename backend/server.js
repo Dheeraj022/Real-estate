@@ -10,11 +10,28 @@ const app = express();
 const prisma = new PrismaClient();
 
 // Middleware
-// CORS configuration - allows requests from any origin (including localhost and production)
-// This is safe because authentication is handled via JWT tokens
+// CORS configuration - explicitly allow frontend origins
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://real-estate-frontend-13q0.onrender.com'
+];
+
 app.use(cors({
-  origin: true, // Allow all origins (localhost and production)
-  credentials: true // Allow cookies/auth headers
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, Postman, or server-to-server)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      // Reject unlisted origins
+      callback(new Error(`CORS: Origin ${origin} is not allowed`));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Authorization']
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -40,11 +57,14 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 404 handler
+// 404 handler - log the requested path for debugging
 app.use((req, res) => {
+  console.log(`404 - Route not found: ${req.method} ${req.path}`);
   res.status(404).json({
     success: false,
-    message: 'Route not found'
+    message: 'Route not found',
+    path: req.path,
+    method: req.method
   });
 });
 
