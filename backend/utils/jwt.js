@@ -8,13 +8,19 @@ const jwt = require('jsonwebtoken');
  * Backend auth still relies on userId + DB lookup.
  */
 const generateToken = (userId, role, email) => {
+  const jwtSecret = process.env.JWT_SECRET;
+  
+  if (!jwtSecret) {
+    throw new Error('JWT_SECRET is not configured. Server cannot generate tokens.');
+  }
+
   const payload = { userId };
   if (role) payload.role = role;
   if (email) payload.email = email;
 
   return jwt.sign(
     payload,
-    process.env.JWT_SECRET,
+    jwtSecret,
     { expiresIn: process.env.JWT_EXPIRE || '7d' }
   );
 };
@@ -23,7 +29,13 @@ const generateToken = (userId, role, email) => {
  * Verify JWT token
  */
 const verifyToken = (token) => {
-  return jwt.verify(token, process.env.JWT_SECRET);
+  const jwtSecret = process.env.JWT_SECRET;
+  
+  if (!jwtSecret) {
+    throw new Error('JWT_SECRET is not configured. Server cannot verify tokens.');
+  }
+  
+  return jwt.verify(token, jwtSecret);
 };
 
 module.exports = {

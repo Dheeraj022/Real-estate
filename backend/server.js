@@ -6,6 +6,19 @@ const { PrismaClient } = require('@prisma/client');
 // Load environment variables
 dotenv.config();
 
+// Validate required environment variables
+if (!process.env.JWT_SECRET) {
+  console.error('❌ ERROR: JWT_SECRET environment variable is required!');
+  console.error('Please set JWT_SECRET in your environment variables.');
+  process.exit(1);
+}
+
+// Set default DATABASE_URL for SQLite if not provided (local development)
+if (!process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = 'file:./dev.db';
+  console.warn('⚠️  DATABASE_URL not set, using default SQLite: file:./dev.db');
+}
+
 const app = express();
 const prisma = new PrismaClient();
 
@@ -84,10 +97,30 @@ app.use((req, res) => {
   });
 });
 
+// Database connection test and logging
+async function initializeDatabase() {
+  try {
+    await prisma.$connect();
+    const dbProvider = process.env.DATABASE_URL?.includes('file:') ? 'SQLite' : 'Other';
+    console.log(`✅ Database connected (${dbProvider})`);
+    console.log(`✅ JWT_SECRET configured: ${process.env.JWT_SECRET ? 'Yes' : 'No'}`);
+  } catch (error) {
+    console.error('❌ Database connection failed:', error.message);
+    process.exit(1);
+  }
+}
+
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// Initialize database before starting server
+initializeDatabase().then(() => {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`🌐 CORS enabled for: ${allowedOrigins.join(', ')}`);
+  });
+}).catch((error) => {
+  console.error('❌ Failed to start server:', error);
+  process.exit(1);
 });
 
 // Graceful shutdown

@@ -17,7 +17,16 @@ const authenticate = async (req, res, next) => {
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const jwtSecret = process.env.JWT_SECRET;
+    
+    if (!jwtSecret) {
+      return res.status(500).json({
+        success: false,
+        message: 'Server configuration error. JWT_SECRET is missing.'
+      });
+    }
+    
+    const decoded = jwt.verify(token, jwtSecret);
     
     // Fetch user from database to ensure they still exist
     const user = await prisma.user.findUnique({
