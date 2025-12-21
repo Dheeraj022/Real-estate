@@ -56,6 +56,29 @@ function validateDatabaseUrl() {
     console.error('DATABASE_URL must start with: postgresql://, postgres://, or file:');
     process.exit(1);
   }
+  
+  // Check for Neon pooler connection (migrations require direct connection)
+  if (isPostgreSQL) {
+    try {
+      const urlObj = new URL(trimmedUrl);
+      if (urlObj.hostname.includes('-pooler')) {
+        console.error('❌ ERROR: DATABASE_URL uses Neon pooler connection!');
+        console.error('Prisma migrations require a DIRECT connection, not a pooler.');
+        console.error('Please use the direct connection string from Neon dashboard.');
+        process.exit(1);
+      }
+      
+      // Ensure sslmode=require for Neon
+      const searchParams = urlObj.searchParams;
+      if (!searchParams.has('sslmode')) {
+        searchParams.set('sslmode', 'require');
+        process.env.DATABASE_URL = urlObj.toString();
+        console.warn('⚠️  Added sslmode=require to DATABASE_URL');
+      }
+    } catch (e) {
+      // URL parsing failed, but format is correct, continue
+    }
+  }
 }
 
 // Validate DATABASE_URL before initializing Prisma
