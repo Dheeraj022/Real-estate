@@ -13,12 +13,53 @@ if (!process.env.JWT_SECRET) {
   process.exit(1);
 }
 
-// Set default DATABASE_URL for SQLite if not provided (local development)
-// Note: In production (Render), DATABASE_URL should be set to PostgreSQL connection string
-if (!process.env.DATABASE_URL) {
-  process.env.DATABASE_URL = 'file:./prisma/dev.db';
-  console.warn('⚠️  DATABASE_URL not set, using default SQLite: file:./prisma/dev.db');
+// Validate DATABASE_URL format
+function validateDatabaseUrl() {
+  const dbUrl = process.env.DATABASE_URL;
+  
+  if (!dbUrl) {
+    // Only set default for local development (SQLite)
+    if (process.env.NODE_ENV !== 'production') {
+      process.env.DATABASE_URL = 'file:./prisma/dev.db';
+      console.warn('⚠️  DATABASE_URL not set, using default SQLite: file:./prisma/dev.db');
+      return;
+    } else {
+      console.error('❌ ERROR: DATABASE_URL is required in production!');
+      console.error('Please set DATABASE_URL in your environment variables.');
+      process.exit(1);
+    }
+  }
+  
+  // CRITICAL: Fail if DATABASE_URL starts with 'psql' (common mistake)
+  if (dbUrl.trim().startsWith('psql')) {
+    console.error('❌ ERROR: Invalid DATABASE_URL format!');
+    console.error('');
+    console.error('DATABASE_URL contains a psql command, but Prisma requires a pure connection string.');
+    console.error('');
+    console.error('Current (WRONG):');
+    console.error(`  ${dbUrl.substring(0, 100)}...`);
+    console.error('');
+    console.error('Expected (CORRECT):');
+    console.error('  postgresql://user:password@host:port/database?sslmode=require');
+    console.error('');
+    console.error('Fix: Remove "psql \'" from the start and "\'" from the end.');
+    process.exit(1);
+  }
+  
+  // Validate format
+  const trimmedUrl = dbUrl.trim();
+  const isPostgreSQL = trimmedUrl.startsWith('postgresql://') || trimmedUrl.startsWith('postgres://');
+  const isSQLite = trimmedUrl.startsWith('file:');
+  
+  if (!isPostgreSQL && !isSQLite) {
+    console.error('❌ ERROR: Invalid DATABASE_URL format!');
+    console.error('DATABASE_URL must start with: postgresql://, postgres://, or file:');
+    process.exit(1);
+  }
 }
+
+// Validate DATABASE_URL before initializing Prisma
+validateDatabaseUrl();
 
 const app = express();
 const prisma = new PrismaClient();
@@ -104,19 +145,34 @@ async function initializeDatabase() {
     await prisma.$connect();
     const dbUrl = process.env.DATABASE_URL || '';
     let dbProvider = 'Unknown';
+    let dbDetails = '';
     
     if (dbUrl.includes('file:')) {
       dbProvider = 'SQLite';
+      dbDetails = dbUrl.replace('file:', '');
     } else if (dbUrl.includes('postgresql://') || dbUrl.includes('postgres://')) {
       dbProvider = 'PostgreSQL';
-    } else if (dbUrl.startsWith('psql')) {
-      dbProvider = 'PostgreSQL (Neon)';
+      try {
+        const urlObj = new URL(dbUrl);
+        dbDetails = `${urlObj.hostname}:${urlObj.port || 5432}/${urlObj.pathname.replace('/', '')}`;
+      } catch (e) {
+        dbDetails = 'connection established';
+      }
     }
     
-    console.log(`✅ Database connected (${dbProvider})`);
+    console.log(`✅ Database connected`);
+    console.log(`   Type: ${dbProvider}`);
+    if (dbDetails) {
+      console.log(`   ${dbDetails}`);
+    }
     console.log(`✅ JWT_SECRET configured: ${process.env.JWT_SECRET ? 'Yes' : 'No'}`);
   } catch (error) {
     console.error('❌ Database connection failed:', error.message);
+    console.error('');
+    console.error('Troubleshooting:');
+    console.error('1. Verify DATABASE_URL is correct');
+    console.error('2. Check database server is accessible');
+    console.error('3. Verify credentials are correct');
     process.exit(1);
   }
 }
