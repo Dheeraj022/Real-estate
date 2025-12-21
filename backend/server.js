@@ -15,8 +15,8 @@ if (!process.env.JWT_SECRET) {
 
 // Set default DATABASE_URL for SQLite if not provided (local development)
 if (!process.env.DATABASE_URL) {
-  process.env.DATABASE_URL = 'file:./dev.db';
-  console.warn('⚠️  DATABASE_URL not set, using default SQLite: file:./dev.db');
+  process.env.DATABASE_URL = 'file:./prisma/dev.db';
+  console.warn('⚠️  DATABASE_URL not set, using default SQLite: file:./prisma/dev.db');
 }
 
 const app = express();
