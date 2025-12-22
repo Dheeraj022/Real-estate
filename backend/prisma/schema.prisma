@@ -18,7 +18,8 @@ model User {
   email         String    @unique
   password      String
   emailVerified Boolean   @default(true)
-  role          String    @default("agent") // "admin" or "agent"
+  role          String    @default("agent") // "agent", "admin", or "SUPER_ADMIN"
+  isSystemUser  Boolean   @default(false) // System users (like SUPER_ADMIN) cannot be deleted or modified
   referralCode  String    @unique
   uplineId      String?
   level         Int       @default(0)

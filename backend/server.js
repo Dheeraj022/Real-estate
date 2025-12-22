@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const bcrypt = require('bcryptjs');
 const { PrismaClient } = require('@prisma/client');
 
 // Load environment variables
@@ -162,6 +163,81 @@ app.use((req, res) => {
   });
 });
 
+/**
+ * Ensure SUPER_ADMIN user exists
+ * Creates permanent SUPER_ADMIN user if it doesn't exist
+ */
+async function ensureSuperAdmin() {
+  const SUPER_ADMIN_EMAIL = 'dheerajadmin@gmail.com';
+  const SUPER_ADMIN_NAME = 'Super Admin';
+  const DEFAULT_PASSWORD = 'SuperAdmin@2025'; // Change this password after first login!
+  
+  try {
+    // Check if SUPER_ADMIN already exists
+    const existingSuperAdmin = await prisma.user.findUnique({
+      where: { email: SUPER_ADMIN_EMAIL }
+    });
+    
+    if (existingSuperAdmin) {
+      // Ensure existing user has correct role and isSystemUser flag
+      if (existingSuperAdmin.role !== 'SUPER_ADMIN' || !existingSuperAdmin.isSystemUser) {
+        await prisma.user.update({
+          where: { email: SUPER_ADMIN_EMAIL },
+          data: {
+            role: 'SUPER_ADMIN',
+            isSystemUser: true
+          }
+        });
+        console.log(`✅ SUPER_ADMIN user updated: ${SUPER_ADMIN_EMAIL}`);
+      } else {
+        console.log(`✅ SUPER_ADMIN user already exists: ${SUPER_ADMIN_EMAIL}`);
+      }
+      return;
+    }
+    
+    // Check if any other SUPER_ADMIN exists (should only be one)
+    const otherSuperAdmin = await prisma.user.findFirst({
+      where: { role: 'SUPER_ADMIN' }
+    });
+    
+    if (otherSuperAdmin) {
+      console.warn(`⚠️  Another SUPER_ADMIN exists (${otherSuperAdmin.email}). Only one SUPER_ADMIN should exist.`);
+      // Update the existing one to ensure it's marked as system user
+      await prisma.user.update({
+        where: { id: otherSuperAdmin.id },
+        data: { isSystemUser: true }
+      });
+      return;
+    }
+    
+    // Generate unique referral code
+    const hashedPassword = await bcrypt.hash(DEFAULT_PASSWORD, 10);
+    const referralCode = `SUPER${Date.now().toString().slice(-6)}`;
+    
+    // Create SUPER_ADMIN user
+    await prisma.user.create({
+      data: {
+        name: SUPER_ADMIN_NAME,
+        email: SUPER_ADMIN_EMAIL,
+        password: hashedPassword,
+        role: 'SUPER_ADMIN',
+        isSystemUser: true,
+        referralCode: referralCode,
+        emailVerified: true,
+        level: 0
+      }
+    });
+    
+    console.log(`✅ SUPER_ADMIN user created: ${SUPER_ADMIN_EMAIL}`);
+    console.log(`   Default password: ${DEFAULT_PASSWORD}`);
+    console.log(`   ⚠️  IMPORTANT: Change this password after first login!`);
+  } catch (error) {
+    console.error('❌ Failed to ensure SUPER_ADMIN user:', error.message);
+    // Don't exit - allow server to start even if SUPER_ADMIN creation fails
+    // This prevents deployment issues if there's a temporary database problem
+  }
+}
+
 // Database connection test and logging
 async function initializeDatabase() {
   try {
@@ -189,6 +265,9 @@ async function initializeDatabase() {
       console.log(`   ${dbDetails}`);
     }
     console.log(`✅ JWT_SECRET configured: ${process.env.JWT_SECRET ? 'Yes' : 'No'}`);
+    
+    // Ensure SUPER_ADMIN user exists
+    await ensureSuperAdmin();
   } catch (error) {
     console.error('❌ Database connection failed:', error.message);
     console.error('');

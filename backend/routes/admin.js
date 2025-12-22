@@ -553,15 +553,31 @@ router.put('/users/:id', [
 
     const { name, email } = req.body;
 
-    // Ensure user exists and is an agent
+    // Ensure user exists
     const existing = await prisma.user.findUnique({
       where: { id: req.params.id }
     });
 
-    if (!existing || existing.role !== 'agent') {
+    if (!existing) {
       return res.status(404).json({
         success: false,
-        message: 'Agent not found'
+        message: 'User not found'
+      });
+    }
+
+    // CRITICAL: Prevent modifying SUPER_ADMIN or system users
+    if (existing.role === 'SUPER_ADMIN' || existing.isSystemUser) {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot modify SUPER_ADMIN or system users. This user is protected and cannot be edited.'
+      });
+    }
+
+    // Only allow updating agents (not admins, for safety)
+    if (existing.role !== 'agent') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only agents can be updated through this endpoint'
       });
     }
 
@@ -625,10 +641,26 @@ router.delete('/users/:id', async (req, res) => {
       where: { id }
     });
 
-    if (!user || user.role !== 'agent') {
+    if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'Agent not found'
+        message: 'User not found'
+      });
+    }
+
+    // CRITICAL: Prevent deletion of SUPER_ADMIN or system users
+    if (user.role === 'SUPER_ADMIN' || user.isSystemUser) {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot delete SUPER_ADMIN or system users. This user is protected and cannot be removed.'
+      });
+    }
+
+    // Only allow deletion of agents (not regular admins either, for safety)
+    if (user.role !== 'agent') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only agents can be deleted. Admin users cannot be deleted through this endpoint.'
       });
     }
 
@@ -706,10 +738,26 @@ router.post('/users/:id/reset-password', [
       where: { id }
     });
 
-    if (!user || user.role !== 'agent') {
+    if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'Agent not found'
+        message: 'User not found'
+      });
+    }
+
+    // CRITICAL: Prevent password reset for SUPER_ADMIN or system users
+    if (user.role === 'SUPER_ADMIN' || user.isSystemUser) {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot reset password for SUPER_ADMIN or system users. This user is protected.'
+      });
+    }
+
+    // Only allow password reset for agents
+    if (user.role !== 'agent') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only agent passwords can be reset through this endpoint'
       });
     }
 
@@ -770,6 +818,14 @@ router.post('/users/:id/make-admin', async (req, res) => {
       });
     }
 
+    // CRITICAL: Prevent modifying SUPER_ADMIN role
+    if (user.role === 'SUPER_ADMIN' || user.isSystemUser) {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot modify SUPER_ADMIN or system user roles. This user is protected.'
+      });
+    }
+
     // Check if user is already an admin
     if (user.role === 'admin') {
       return res.status(400).json({
@@ -783,6 +839,15 @@ router.post('/users/:id/make-admin', async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Only agents can be promoted to admin'
+      });
+    }
+
+    // CRITICAL: Prevent assigning SUPER_ADMIN role via API
+    // Only the system can create SUPER_ADMIN during startup
+    if (req.body.role === 'SUPER_ADMIN') {
+      return res.status(403).json({
+        success: false,
+        message: 'SUPER_ADMIN role cannot be assigned via API. This role is system-protected.'
       });
     }
 
@@ -856,6 +921,14 @@ router.post('/users/:id/remove-admin', async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'User not found'
+      });
+    }
+
+    // CRITICAL: Prevent modifying SUPER_ADMIN role
+    if (user.role === 'SUPER_ADMIN' || user.isSystemUser) {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot modify SUPER_ADMIN or system user roles. This user is protected and cannot have admin access revoked.'
       });
     }
 
